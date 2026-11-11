@@ -80,16 +80,19 @@
   /* marker screen */
   #markerScreen { background:#fff; color:#000; }
   #markerScreen .wrap { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
-  #markerSvg svg { width:min(90vw,70vh); height:auto; display:block; }
+  #markerSvg svg { width:min(88vw,50vh); height:auto; display:block; }
   #markerScreen .tools { display:flex; gap:10px; margin-top:16px; }
   #markerScreen button { background:#eee; color:#000; width:auto; padding:12px 26px; margin:0; }
+  #printSheet { display:none; }
+  .chips { display:flex; gap:10px; margin-top:14px; }
+  .chips button { margin:0; background:#eee; color:#000; border:3px solid transparent; min-width:84px; }
+  .chips button.sel { border-color:#000; }
   @media print {
-    body { background:#fff; overflow:visible; }
-    .screen { display:none !important; }
-    #markerScreen { display:block !important; position:static; }
-    #markerScreen .tools, #markerScreen p, #video { display:none; }
-    /* 19.15cm wide => the ring is 18cm across */
-    #markerSvg svg { width:19.15cm; }
+    html, body { background:#fff; overflow:visible; height:auto; }
+    .screen, #video, #toast, #dialog { display:none !important; }
+    #printSheet { display:block; }
+    #printSheet svg { display:block; }
+    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
 </style>
 </head>
@@ -137,16 +140,8 @@
   </div>
   <button id="btnSolo">Play unsynced (this phone only)</button>
   <button id="btnMarker">Show / print the target</button>
-  <p class="hint"><b>Make the target:</b> on any paper, draw a thick closed ring as big as the page (stroke about a finger wide), then a solid filled dot in the middle, about a third of the ring's width. Leave white space between them. Go over the ring twice with a marker pen so it has no gaps. No paper? Lay a spare phone flat showing the target screen.</p>
+  <p class="hint"><b>Make the target:</b> draw a thick closed ring about 9 cm across (a palm's width), with a stroke about as wide as a finger, then a solid dot in the middle about a third of the ring's width. Leave white space between them and go over the ring twice so it has no gaps. Bigger targets can be seen from further away. Or print one at exact size, or lay a spare phone flat showing the target.</p>
 
-  <details>
-    <summary>Distance settings</summary>
-    <label>Target size: outside diameter of the ring (cm)</label>
-    <div class="stepper"><button data-for="markerCm" data-d="-1">−</button><output id="markerCmOut"></output><button data-for="markerCm" data-d="1">+</button></div>
-    <input id="markerCm" type="hidden" data-min="4" data-max="60" data-step="1" data-unit=" cm">
-    <p class="hint">Distance comes from how big the target looks to your camera. For better accuracy, hold the phone exactly 50 cm from the target in the game screen and tap "Calibrate".</p>
-    <p class="hint" id="calibInfo"></p>
-  </details>
 </div></section>
 
 <!-- PLAY -->
@@ -182,6 +177,11 @@
     <div class="stepper" id="graceStepper"><button data-for="grace" data-d="-1">−</button><output id="graceOut"></output><button data-for="grace" data-d="1">+</button></div>
     <input id="grace" type="hidden" data-min="0.25" data-max="5" data-step="0.25" data-unit=" s">
     <div class="hint hidden" id="graceInfo" style="font-size:19px;color:var(--fg)"></div>
+    <label style="margin-top:12px">Target size: width of the ring, edge to edge</label>
+    <div class="stepper" id="sizeStepper"><button data-for="markerCm" data-d="-1">−</button><output id="markerCmOut"></output><button data-for="markerCm" data-d="1">+</button></div>
+    <input id="markerCm" type="hidden" data-min="3" data-max="60" data-step="0.5" data-unit=" cm">
+    <div class="hint hidden" id="sizeInfo" style="font-size:19px;color:var(--fg)"></div>
+    <div class="hint" id="calibInfo"></div>
     <div class="hint">Point your camera at the target. Everyone should show a green lock (80%+) before starting. If yours is low: move closer, add light, or tap Camera view to see what the detector sees.</div>
     <button class="primary" id="btnStart">Start (3-second countdown)</button>
     <button id="btnSoundCheck">🔊 Sound check</button>
@@ -199,12 +199,16 @@
   </div>
 </section>
 
-<!-- MARKER -->
+<!-- TARGET -->
 <section id="markerScreen" class="screen"><div class="wrap">
   <div id="markerSvg"></div>
-  <p style="max-width:420px;text-align:center;font-size:14px">Print this (18 cm ring) or lay this phone flat on the table at full brightness with auto-lock off. Hand-drawn works too.</p>
-  <div class="tools"><button id="btnPrint">Print</button><button id="btnMarkerBack">Back</button></div>
+  <p id="screenSize" style="max-width:420px;text-align:center;font-size:17px;margin:14px 0 0"></p>
+  <div class="chips" id="sizes">
+    <button data-cm="6">6 cm</button><button data-cm="9">9 cm</button><button data-cm="18">18 cm</button>
+  </div>
+  <div class="tools"><button id="btnPrint">Print at this size</button><button id="btnMarkerBack">Back</button></div>
 </div></section>
+<div id="printSheet"></div>
 
 <div id="toast" class="hidden"></div>
 <div id="dialog" class="hidden"><div>
@@ -226,7 +230,7 @@ const store = {
 // fRatio = camera focal length / long side of the image, in pixels.
 // 0.72 ~= a typical 26mm-equivalent phone main camera (about 69 degrees across the long side).
 const cfg = {
-  name: store.get('name', ''), markerCm: store.get('markerCm', 18),
+  name: store.get('name', ''), markerCm: store.get('markerCm', 9),
   grace: store.get('grace', 1.5), fRatio: store.get('fRatio', 0.72), calibrated: store.get('calibrated', false)
 };
 const MODES = {
@@ -427,7 +431,7 @@ function trackFrame() {
   track.rate = track.hist.reduce((a, b) => a + b, 0) / track.hist.length;
   if (hit) {
     // perspective squashes the circle into an ellipse; its long axis is still the true diameter
-    const dcm = cfg.markerCm * cfg.fRatio * Math.max(w, h) / hit.big;
+    const dcm = targetCm() * cfg.fRatio * Math.max(w, h) / hit.big;
     track.dist = track.dist == null || !track.seen ? dcm : track.dist * 0.7 + dcm * 0.3;
     track.sidePx = hit.big; track.longSide = Math.max(w, h);
     track.ell = { x: hit.cx / w, y: hit.cy / h, rx: hit.bw / 2 / w, ry: hit.bh / 2 / h };
@@ -469,17 +473,18 @@ function drawOverlay() {
 let isHost = false, online = false, peer = null, hostConn = null, myId = 'host', roomCode = '';
 const conns = new Map();
 let players = {};           // id -> {name, alive, health, seen, dist, outAt}
-let game = { state: 'lobby', mode: 'classic', seed: 1, grace: 1.5 };
+let game = { state: 'lobby', mode: 'classic', seed: 1, grace: 1.5, targetCm: 0 };
 let t0 = 0, startAt = 0, myHealth = 1, myAlive = true, myValid = false, lastFrame = 0, lastSend = 0, lastPhase = -1, wasWarning = false;
 
 function me() { return players[myId]; }
+function targetCm() { return (!isHost && online && game.targetCm) || cfg.markerCm; }
 function resetPlayersForRound() { for (const p of Object.values(players)) Object.assign(p, { alive: true, health: 1, outAt: null }); }
 
 // ----- host side -----
 function hostGame(withSync) {
   isHost = true; online = withSync; myId = 'host';
   players = { host: { name: cfg.name || 'Host', alive: true, health: 1, seen: false, dist: null } };
-  game = { state: 'lobby', mode: $('#mode').value, seed: 1, grace: cfg.grace };
+  game = { state: 'lobby', mode: $('#mode').value, seed: 1, grace: cfg.grace, targetCm: cfg.markerCm };
   enterPlay();
   if (!withSync) return;
   if (!window.Peer) { toast('Sync library failed to load.'); return; }
@@ -514,7 +519,7 @@ function broadcastRoster() { broadcast({ t: 'roster', players }); renderPlayers(
 function announceOut(id) { broadcast({ t: 'out', id, name: players[id].name }); if (id !== myId) toast(players[id].name + ' is out!'); renderPlayers(); }
 
 function hostStart() {
-  game.mode = $('#mode').value; game.seed = (Math.random() * 1e9) | 0; game.grace = cfg.grace;
+  game.mode = $('#mode').value; game.seed = (Math.random() * 1e9) | 0; game.grace = cfg.grace; game.targetCm = cfg.markerCm;
   resetPlayersForRound();
   broadcast({ t: 'start', game, countdownMs: 3000 });
   broadcastRoster();
@@ -574,7 +579,7 @@ function runSoundCheck(order) {
 // Host changed a lobby setting: tell everyone straight away so they see the rules before the round.
 function pushSettings() {
   if (!isHost || game.state !== 'lobby') return;
-  game.grace = cfg.grace; game.mode = $('#mode').value;
+  game.grace = cfg.grace; game.mode = $('#mode').value; game.targetCm = cfg.markerCm;
   broadcast({ t: 'game', game });
 }
 
@@ -593,6 +598,9 @@ function renderLobby() {
   $('#graceStepper').classList.toggle('hidden', !isHost);
   $('#graceInfo').classList.toggle('hidden', isHost);
   $('#graceInfo').textContent = game.grace + ' s (set by the host)';
+  $('#sizeStepper').classList.toggle('hidden', !isHost);
+  $('#sizeInfo').classList.toggle('hidden', isHost);
+  $('#sizeInfo').textContent = game.targetCm + ' cm (set by the host)';
   $('#lobbyTitle').textContent = isHost ? 'Lobby' : 'Waiting for host to start';
   $('#btnSoundCheck').textContent = isHost && online ? '🔊 Sound check (everyone, in turn)' : '🔊 Test my sound';
   $('#lobbyMode').textContent = MODES[isHost ? $('#mode').value : game.mode] || '';
@@ -699,21 +707,64 @@ function renderPlayers() {
 }
 
 // ---------- target screen ----------
-// Ring outer diameter is 94 of 100 units, so printing 19.15 cm wide gives an 18 cm ring.
+// Ring outer diameter is 94 of 100 units.
 const BULLSEYE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#fff"/>' +
   '<circle cx="50" cy="50" r="42" fill="none" stroke="#000" stroke-width="10"/><circle cx="50" cy="50" r="16" fill="#000"/></svg>';
+let printCm = [6, 9, 18].includes(cfg.markerCm) ? cfg.markerCm : 9;
 function showMarker() {
   $('#markerSvg').innerHTML = BULLSEYE_SVG;
   show('markerScreen'); keepAwake();
+  document.querySelectorAll('#sizes button').forEach(b => b.classList.toggle('sel', +b.dataset.cm === printCm));
+  // Phones don't report their physical screen size; ~6.1 CSS px per mm is typical, so this is an estimate.
+  const ringPx = $('#markerSvg svg').getBoundingClientRect().width * 0.94;
+  const cm = Math.round(ringPx / 6.1 / 5) / 2;
+  $('#screenSize').textContent = 'On this screen the ring is roughly ' + cm + ' cm across. To use this phone as the target, lay it flat at full brightness and set the target size in the lobby to match (measure it with a ruler if you can).';
+}
+
+// True-size printing, following workshop-kit's approach: the page is described in millimetres, the @page
+// size matches the paper so the browser has no reason to rescale, and a ruler on the sheet lets you check.
+function paperSize() {
+  const region = (navigator.language || 'en-GB').split('-')[1];
+  return region && ['US', 'CA', 'MX', 'PH', 'CL', 'CO', 'VE'].includes(region.toUpperCase())
+    ? { name: 'US Letter', w: 215.9, h: 279.4 } : { name: 'A4', w: 210, h: 297 };
+}
+function printSheetSvg(cm) {
+  const P = paperSize(), D = cm * 10, margin = 12, rulerH = 30;
+  const cell = D + 14, cols = Math.max(1, Math.floor((P.w - 2 * margin) / cell)), rows = Math.max(1, Math.floor((P.h - 2 * margin - rulerH) / cell));
+  const gx = (P.w - cols * cell) / 2, gy = margin + (P.h - 2 * margin - rulerH - rows * cell) / 2;
+  let o = `<svg xmlns="http://www.w3.org/2000/svg" width="${P.w}mm" height="${P.h}mm" viewBox="0 0 ${P.w} ${P.h}"><rect width="${P.w}" height="${P.h}" fill="#fff"/>`;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const x = gx + c * cell + cell / 2, y = gy + r * cell + cell / 2, R = D / 2, sw = D * 10 / 94;
+    o += `<rect x="${x - cell / 2 + 1}" y="${y - cell / 2 + 1}" width="${cell - 2}" height="${cell - 2}" fill="none" stroke="#999" stroke-width="0.2" stroke-dasharray="2 2"/>`;
+    o += `<circle cx="${x}" cy="${y}" r="${R - sw / 2}" fill="none" stroke="#000" stroke-width="${sw}"/><circle cx="${x}" cy="${y}" r="${D * 16 / 94}" fill="#000"/>`;
+  }
+  // scale-check ruler: 100 mm with cm marks
+  const rx = (P.w - 100) / 2, ry = P.h - margin - 16;
+  o += `<text x="${rx}" y="${ry - 3}" font-family="sans-serif" font-size="3" font-weight="bold">Sightline target, ring ${cm} cm. Print at 100% / "Actual size". This ruler must measure exactly 100 mm.</text>`;
+  o += `<line x1="${rx}" y1="${ry}" x2="${rx + 100}" y2="${ry}" stroke="#000" stroke-width="0.2"/>`;
+  for (let i = 0; i <= 100; i++) {
+    const len = i % 10 === 0 ? 3 : i % 5 === 0 ? 2 : 1;
+    o += `<line x1="${rx + i}" y1="${ry}" x2="${rx + i}" y2="${ry + len}" stroke="#000" stroke-width="0.2"/>`;
+    if (i % 10 === 0) o += `<text x="${rx + i}" y="${ry + 6}" font-family="sans-serif" font-size="2.2" text-anchor="middle">${i / 10}</text>`;
+  }
+  return { svg: o + '</svg>', P };
+}
+function printTarget() {
+  const { svg, P } = printSheetSvg(printCm);
+  $('#printSheet').innerHTML = svg;
+  let st = $('#pageStyle'); if (!st) { st = document.createElement('style'); st.id = 'pageStyle'; document.head.appendChild(st); }
+  st.textContent = `@page { size: ${P.w}mm ${P.h}mm; margin: 0; }`;
+  cfg.markerCm = printCm; store.set('markerCm', printCm); $('#markerCm').value = printCm; showStep('markerCm');
+  setTimeout(() => window.print(), 100);
 }
 
 // ---------- wire up UI ----------
 function saveSettings() {
   cfg.name = $('#name').value.trim(); store.set('name', cfg.name);
-  cfg.markerCm = Math.max(1, +$('#markerCm').value || 18); store.set('markerCm', cfg.markerCm);
+  cfg.markerCm = Math.max(1, +$('#markerCm').value || 9); store.set('markerCm', cfg.markerCm);
   cfg.grace = Math.min(5, Math.max(0.25, +$('#grace').value || 1.5)); store.set('grace', cfg.grace);
 }
-function calibInfo() { $('#calibInfo').textContent = cfg.calibrated ? `Calibrated (focal ratio ${cfg.fRatio.toFixed(3)}).` : 'Not calibrated: using a typical phone camera estimate.'; }
+function calibInfo() { $('#calibInfo').textContent = cfg.calibrated ? 'Distance calibrated on this phone.' : 'Distance not calibrated: using a typical phone camera estimate. Hold the phone 50 cm from the target and tap Calibrate.'; }
 $('#name').value = cfg.name; $('#markerCm').value = cfg.markerCm; $('#grace').value = cfg.grace; calibInfo();
 $('#name').addEventListener('change', saveSettings);
 $('#name').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
@@ -751,7 +802,11 @@ $('#btnSolo').onclick = () => { saveSettings(); unlockAudio(); hostGame(false); 
 $('#btnJoin').onclick = () => { saveSettings(); unlockAudio(); joinGame($('#joinCode').value); };
 $('#btnMarker').onclick = showMarker;
 $('#btnMarkerBack').onclick = () => show('home');
-$('#btnPrint').onclick = () => window.print();
+$('#btnPrint').onclick = printTarget;
+document.querySelectorAll('#sizes button').forEach(b => b.onclick = () => {
+  printCm = +b.dataset.cm;
+  document.querySelectorAll('#sizes button').forEach(x => x.classList.toggle('sel', x === b));
+});
 $('#btnStart').onclick = async () => {
   if (!isHost) return;
   // Pre-flight: a bad camera angle should be fixed before the round, not discovered as an unfair "out".
@@ -768,7 +823,7 @@ $('#btnShare').onclick = async () => {
 };
 $('#btnCalib').onclick = () => {
   if (!track.seen) { toast('Point at the target from 50 cm first'); return; }
-  cfg.fRatio = 50 * track.sidePx / (cfg.markerCm * track.longSide); cfg.calibrated = true;
+  cfg.fRatio = 50 * track.sidePx / (targetCm() * track.longSide); cfg.calibrated = true;
   store.set('fRatio', cfg.fRatio); store.set('calibrated', true); track.dist = null; calibInfo();
   toast('Calibrated ✓');
 };
