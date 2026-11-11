@@ -101,7 +101,30 @@
   /* marker screen */
   #markerScreen { background:#fff; color:#000; }
   #markerScreen .wrap { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
-  #markerSvg svg { width:min(88vw,50vh); height:auto; display:block; }
+  #markerSvg svg { height:auto; display:block; max-width:96vw; }
+  #markerScreen #btnCheckSize.need { background:#000; color:#fff; }
+  #calScreen { background:#fff; color:#000; }
+  #calBar { position:absolute; left:14px; top:max(40px,env(safe-area-inset-top)); height:64px; background:#000; border-radius:4px; }
+  #calUI { position:absolute; left:18px; right:18px; bottom:max(18px,env(safe-area-inset-bottom)); font-size:19px; }
+  #calUI button { background:#eee; color:#000; }
+  #calUI #calDone { background:#000; color:#fff; }
+  .sizeChips { display:flex; gap:10px; margin-top:6px; }
+  .sizeChips button { margin:0; min-height:54px; padding:4px; border:2px solid transparent; font-weight:400; font-size:13px; color:#bbb; line-height:1.15; }
+  .sizeChips button b { display:block; font-size:19px; color:var(--fg); }
+  .sizeChips button.sel { border-color:var(--fg); background:#3a3a3a; }
+  #emojiPanel { top:max(10px,env(safe-area-inset-top)); bottom:max(10px,env(safe-area-inset-bottom)); max-height:none; z-index:6; background:#111; padding:16px; display:flex; flex-direction:column; justify-content:center; }
+  #emojiPanel.hidden { display:none !important; }
+  #emojiGrid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin:8px 0; }
+  #emojiGrid button { margin:0; min-height:58px; font-size:32px; padding:0; border:2px solid transparent; }
+  #emojiGrid button.sel { border-color:var(--fg); background:#3a3a3a; }
+  #emojiGrid button:disabled { opacity:.2; }
+  #lobbyPlayers { display:flex; flex-wrap:wrap; gap:8px; }
+  #lobbyPlayers > div.chip { background:#222; border:2px solid transparent; border-radius:12px; padding:4px 10px; font-size:15px; color:#bbb; text-align:center; min-width:74px; }
+  #lobbyPlayers > div.chip.me { border-color:var(--fg); }
+  #lobbyPlayers > div.chip b { display:block; font-size:34px; line-height:1.2; font-weight:400; }
+  .p b { font-size:24px; font-weight:400; }
+  .or { display:flex; align-items:center; gap:12px; color:#888; font-size:16px; margin:16px 0 4px; }
+  .or::before, .or::after { content:''; flex:1; height:1px; background:#3a3a3a; }
   #markerScreen .tools { display:flex; gap:10px; margin-top:16px; }
   #markerScreen button { background:#eee; color:#000; width:auto; padding:12px 26px; margin:0; }
   #printSheet { display:none; }
@@ -127,9 +150,12 @@
     <div class="stepBody">
       <h1>Sightline</h1>
       <p class="sub" style="margin-bottom:10px">Keep the target in view. Block everyone else's. Last camera still seeing it wins.</p>
-      <button class="card" id="btnHost"><b>Host a game</b>Friends join with your room code</button>
-      <button class="card" id="btnJoinRole"><b>Join a game</b>Enter a friend's room code</button>
-      <button class="card" id="btnSolo"><b>Play unsynced</b>No connection: each phone runs on its own</button>
+      <div class="row">
+        <button class="card" id="btnHost"><b>Host</b>Friends join with your code</button>
+        <button class="card" id="btnJoinRole"><b>Join</b>Enter a friend's code</button>
+      </div>
+      <div class="or">or</div>
+      <button class="card" id="btnSolo" style="margin-top:0"><b>Play unsynced</b>No connection: each phone runs on its own</button>
     </div>
     <div class="stepFoot"><button id="btnMarker">Make, show or print the target</button></div>
   </div>
@@ -137,13 +163,9 @@
   <div class="step" id="stepName">
     <div class="stepHead"><button class="back">‹ Back</button><span class="stepCount"></span></div>
     <div class="stepBody">
-      <h2 id="nameTitle">Host a game</h2>
-      <div id="codeWrap">
-        <label>Room code</label>
-        <input id="joinCode" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="next" style="margin-top:0">
-      </div>
-      <label>Your name (optional)</label>
-      <input id="name" maxlength="14" placeholder="e.g. Sam" autocomplete="off" autocapitalize="words" enterkeyhint="done">
+      <h2>Join a game</h2>
+      <label>Room code from the host</label>
+      <input id="joinCode" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done" style="margin-top:0">
     </div>
     <div class="stepFoot"><button class="primary" id="btnNameNext">Continue</button></div>
   </div>
@@ -200,7 +222,10 @@
       <div class="hint" style="margin:0">Room code</div>
       <div class="row" style="align-items:center"><div id="code">····</div><button class="small" id="btnShare" style="flex:0 0 auto">Share link</button></div>
     </div>
-    <h2 id="lobbyTitle" style="margin-top:12px">Lobby</h2>
+    <div class="row" style="align-items:center;margin-top:10px">
+      <h2 id="lobbyTitle" style="margin:0">Lobby</h2>
+      <button class="small" id="btnEmoji" style="flex:0 0 auto;margin:0"></button>
+    </div>
     <div id="lobbyPlayers" style="margin:8px 0"></div>
     <div class="hint">Point at the target. Everyone needs a green lock before starting.</div>
     <button class="primary" id="btnStart">Start (3-second countdown)</button>
@@ -209,6 +234,12 @@
       <button id="btnSoundCheck">🔊 Sound check</button>
       <button id="btnLeave">Leave</button>
     </div>
+  </div>
+
+  <div class="panel hidden" id="emojiPanel">
+    <h2 style="margin:0">Pick your icon</h2>
+    <div id="emojiGrid"></div>
+    <button id="btnEmojiClose">Cancel</button>
   </div>
 
   <div class="panel hidden" id="settingsPanel">
@@ -225,8 +256,14 @@
       <label style="margin-top:12px">Grace: time without sight before you're out</label>
       <div class="stepper"><button data-for="grace" data-d="-1">−</button><output id="graceOut"></output><button data-for="grace" data-d="1">+</button></div>
       <input id="grace" type="hidden" data-min="0.25" data-max="5" data-step="0.25" data-unit=" s">
-      <label style="margin-top:12px">Target size: width of the ring</label>
-      <div class="stepper"><button data-for="markerCm" data-d="-1">−</button><output id="markerCmOut"></output><button data-for="markerCm" data-d="1">+</button></div>
+      <div class="row" style="align-items:center;margin-top:10px">
+        <label style="margin:0">Target size</label>
+        <button class="small" id="btnCustomSize" style="flex:0 0 auto;margin:0">Custom…</button>
+      </div>
+      <div class="sizeChips" id="sizeChips">
+        <button data-cm="5"><b>5 cm</b>phone screen</button><button data-cm="9"><b>9 cm</b>pocket</button><button data-cm="18"><b>18 cm</b>full page</button>
+      </div>
+      <div class="stepper hidden" id="sizeStepper" style="margin-top:6px"><button data-for="markerCm" data-d="-1">−</button><output id="markerCmOut"></output><button data-for="markerCm" data-d="1">+</button></div>
       <input id="markerCm" type="hidden" data-min="3" data-max="60" data-step="0.5" data-unit=" cm">
     </div>
     <div class="hint hidden" id="hostOnly" style="font-size:20px;color:var(--fg);margin:0 0 6px"></div>
@@ -251,12 +288,23 @@
 <!-- TARGET -->
 <section id="markerScreen" class="screen"><div class="wrap">
   <div id="markerSvg"></div>
-  <p id="screenSize" style="max-width:420px;text-align:center;font-size:17px;margin:14px 0 0"></p>
+  <p id="screenSize" style="max-width:420px;text-align:center;font-size:17px;margin:12px 0 0"></p>
+  <button id="btnCheckSize" style="margin-top:12px">Check size with a card</button>
   <div class="chips" id="sizes">
-    <button data-cm="6">6 cm</button><button data-cm="9">9 cm</button><button data-cm="18">18 cm</button>
+    <button data-cm="5">5 cm</button><button data-cm="9">9 cm</button><button data-cm="18">18 cm</button>
   </div>
-  <div class="tools"><button id="btnPrint">Print at this size</button><button id="btnMarkerBack">Back</button></div>
+  <div class="tools"><button id="btnPrint">Print</button><button id="btnMarkerBack">Back</button></div>
 </div></section>
+
+<!-- SCREEN SIZE CHECK -->
+<section id="calScreen" class="screen">
+  <div id="calBar"></div>
+  <div id="calUI">
+    <p style="margin:0 0 12px">Hold the <b>short edge</b> of a bank card against the black bar. Tap until the bar is exactly as long as the card (5.4 cm).</p>
+    <div class="row"><button id="calMinus" style="font-size:22px">− Shorter</button><button id="calPlus" style="font-size:22px">+ Longer</button></div>
+    <button id="calDone">Done</button>
+  </div>
+</section>
 <div id="printSheet"></div>
 
 <div id="toast" class="hidden"></div>
@@ -282,6 +330,14 @@ const cfg = {
   name: store.get('name', ''), markerCm: store.get('markerCm', 9),
   grace: store.get('grace', 1.5), fRatio: store.get('fRatio', 0.72), calibrated: store.get('calibrated', false)
 };
+// Players are identified by an emoji instead of a typed name: quick to set and easy to read across a table.
+const EMOJI = ['🦊','🐸','🐙','🦄','🐝','🐢','🦁','🐧','🦉','🐳','🦖','🐌','🦋','🐞','🦀','🐨','🐼','🐯','🐷','🐵','🦆','🦩','🐊','🌵','🍄','🍉','🍩','👻','🤖','👽'];
+function randomEmoji(taken = []) {
+  const free = EMOJI.filter(e => !taken.includes(e));
+  const pool = free.length ? free : EMOJI;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+cfg.name = store.get('emoji', '') || randomEmoji();
 const MODES = {
   classic: 'Classic: keep sight of the marker.',
   zone:    'Zones: stay inside the distance band. It moves every 12 s.',
@@ -534,7 +590,7 @@ function resetPlayersForRound() { for (const p of Object.values(players)) Object
 // ----- host side -----
 function hostGame(withSync) {
   isHost = true; online = withSync; myId = 'host';
-  players = { host: { name: cfg.name || 'Host', alive: true, health: 1, seen: false, dist: null } };
+  players = { host: { name: cfg.name, alive: true, health: 1, seen: false, dist: null } };
   game = { state: 'lobby', mode: $('#mode').value, seed: 1, grace: cfg.grace, targetCm: cfg.markerCm };
   enterPlay();
   if (!withSync) return;
@@ -555,14 +611,29 @@ function hostGame(withSync) {
 }
 function onHostMsg(id, d) {
   if (d.t === 'hello') {
-    players[id] = { name: String(d.name || 'Player').slice(0, 14), alive: game.state === 'lobby', health: 1, seen: false, dist: null };
+    players[id] = { name: freeName(d.name, id), alive: game.state === 'lobby', health: 1, seen: false, dist: null };
     send(conns.get(id), { t: 'welcome', game });
+    broadcastRoster();
+  } else if (d.t === 'name' && players[id]) {
+    players[id].name = freeName(d.name, id, players[id].name);
     broadcastRoster();
   } else if (d.t === 'state' && players[id]) {
     const p = players[id];
     p.seen = !!d.seen; p.dist = d.dist; p.health = d.health; p.rate = d.rate;
     if (p.alive && d.alive === false && game.state === 'playing') { p.alive = false; p.outAt = Date.now() - t0; announceOut(id); checkEnd(); }
   }
+}
+// The host keeps icons unique: a clash gets the fallback, or a random free icon.
+function freeName(wanted, id, fallback) {
+  const taken = Object.entries(players).filter(([k]) => k !== id).map(([, pl]) => pl.name);
+  const nm = String(wanted || '').slice(0, 8);
+  if (nm && !taken.includes(nm)) return nm;
+  return fallback || randomEmoji(taken);
+}
+function setEmoji(e) {
+  store.set('emoji', e); cfg.name = e;
+  if (isHost) { if (me()) me().name = freeName(e, myId, me().name); broadcastRoster(); }
+  else send(hostConn, { t: 'name', name: e });
 }
 function send(c, msg) { try { c && c.open && c.send(msg); } catch {} }
 function broadcast(msg) { for (const c of conns.values()) send(c, msg); }
@@ -600,14 +671,14 @@ function joinGame(code) {
   peer.on('open', id => {
     myId = id;
     hostConn = peer.connect(ROOM_PREFIX + code, { reliable: true });
-    hostConn.on('open', () => { send(hostConn, { t: 'hello', name: cfg.name || 'Player' }); enterPlay(); });
+    hostConn.on('open', () => { send(hostConn, { t: 'hello', name: cfg.name }); enterPlay(); });
     hostConn.on('data', onClientMsg);
     hostConn.on('close', () => { toast('Lost connection to host', 5000); });
   });
 }
 function onClientMsg(d) {
   if (d.t === 'welcome') { game = d.game; renderLobby(); }
-  else if (d.t === 'roster') { players = d.players; renderPlayers(); }
+  else if (d.t === 'roster') { players = d.players; if (me() && me().name !== cfg.name) { cfg.name = me().name; renderLobby(); } renderPlayers(); }
   else if (d.t === 'start') { game = d.game; resetPlayersForRound(); beginRound(d.countdownMs); }
   else if (d.t === 'out') { if (d.id !== myId) toast(d.name + ' is out!'); }
   else if (d.t === 'end') showEnd(d);
@@ -645,11 +716,14 @@ function enterPlay() {
   renderLobby(); renderPlayers();
 }
 const MODE_NAMES = { classic: 'Classic', zone: 'Zones', retreat: 'Retreat', crowd: 'Crowd in' };
-let settingsOpen = false;
+let settingsOpen = false, emojiOpen = false;
 function renderLobby() {
   const inLobby = game.state === 'lobby';
-  if (!inLobby) settingsOpen = false;
-  $('#lobbyPanel').classList.toggle('hidden', !inLobby || settingsOpen);
+  if (!inLobby) settingsOpen = emojiOpen = false;
+  $('#lobbyPanel').classList.toggle('hidden', !inLobby || settingsOpen || emojiOpen);
+  $('#emojiPanel').classList.toggle('hidden', !inLobby || !emojiOpen);
+  $('#btnEmoji').classList.toggle('hidden', !online);
+  $('#btnEmoji').textContent = cfg.name + '  Change';
   $('#settingsPanel').classList.toggle('hidden', !inLobby || !settingsOpen);
   $('#endPanel').classList.add('hidden');
   $('#btnStart').classList.toggle('hidden', !isHost);
@@ -658,14 +732,14 @@ function renderLobby() {
   $('#hostSettings').classList.toggle('hidden', !isHost);
   $('#hostOnly').classList.toggle('hidden', isHost);
   $('#hostOnly').textContent = 'Set by the host: ' + MODE_NAMES[mode] + ', ' + grace + ' s grace, ' + game.targetCm + ' cm target.';
-  $('#lobbyTitle').textContent = isHost ? 'Lobby' : 'Waiting for host to start';
+  $('#lobbyTitle').textContent = !online ? 'Unsynced game' : isHost ? 'Lobby' : 'Waiting for host';
   $('#btnSoundCheck').textContent = isHost && online ? '🔊 Sound check' : '🔊 Test sound';
   $('#outScreen').classList.add('hidden'); $('#countdown').classList.add('hidden');
 }
 function beginRound(countdownMs) {
   game.state = 'countdown'; startAt = performance.now() + countdownMs;
   myHealth = 1; myAlive = true; lastPhase = -1; wasWarning = false;
-  settingsOpen = false; $('#settingsPanel').classList.add('hidden');
+  settingsOpen = emojiOpen = false; $('#settingsPanel').classList.add('hidden'); $('#emojiPanel').classList.add('hidden');
   $('#lobbyPanel').classList.add('hidden'); $('#endPanel').classList.add('hidden'); $('#outScreen').classList.add('hidden');
   $('#countdown').classList.remove('hidden');
 }
@@ -756,28 +830,65 @@ function loop(ts) {
 function renderPlayers() {
   const list = Object.entries(players);
   $('#plist').innerHTML = list.length < 2 ? '' : list.map(([id, p]) =>
-    `<div class="p ${p.alive ? '' : 'out'}">${esc(p.name)}${id === myId ? ' (you)' : ''} ${p.seen ? '👁' : '·'}
+    `<div class="p ${p.alive ? '' : 'out'}"><b>${esc(p.name)}</b>${id === myId ? ' you' : ''} ${p.seen ? '👁' : '·'}
      <div class="bar"><i style="width:${Math.max(0, p.health * 100)}%"></i></div></div>`).join('');
   if (game.state === 'lobby') $('#lobbyPlayers').innerHTML = list.map(([id, p]) =>
-    `<div>${(p.rate || 0) >= 0.8 ? '🟢' : (p.rate || 0) > 0.3 ? '🟡' : '⚪️'} ${esc(p.name)}${id === myId ? ' (you)' : ''}
-      <span class="hint">lock ${Math.round((p.rate || 0) * 100)}%${p.dist && p.seen ? ' · ' + Math.round(p.dist) + ' cm' : ''}</span></div>`).join('');
+    `<div class="chip ${id === myId ? 'me' : ''}"><b>${esc(p.name)}</b>${(p.rate || 0) >= 0.8 ? '🟢' : (p.rate || 0) > 0.3 ? '🟡' : '⚪️'} ${Math.round((p.rate || 0) * 100)}%${p.dist && p.seen ? ' · ' + Math.round(p.dist) + ' cm' : ''}</div>`).join('');
 }
 
 // ---------- target screen ----------
 // Ring outer diameter is 94 of 100 units.
 const BULLSEYE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#fff"/>' +
   '<circle cx="50" cy="50" r="42" fill="none" stroke="#000" stroke-width="10"/><circle cx="50" cy="50" r="16" fill="#000"/></svg>';
-let printCm = [6, 9, 18].includes(cfg.markerCm) ? cfg.markerCm : 9;
+const SIZES = [5, 9, 18];           // standard target sizes in cm; 5 cm is what a phone screen shows
+const SCREEN_CM = 5;
+let printCm = SIZES.includes(cfg.markerCm) ? cfg.markerCm : 9;
+
+// How many CSS pixels make a millimetre on this screen. Browsers don't report it, so:
+//  1. use a saved measurement (bank-card check), else
+//  2. recognise the iPhone model family from its screen resolution, else
+//  3. fall back to a typical value and say that it is a guess.
+// Values are logical width / physical panel width in mm.
+const IPHONE_PX_PER_MM = {
+  '320x568@2': 6.417, '375x667@2': 6.417, '414x736@3': 6.052, '414x896@2': 6.418, '414x896@3': 6.011,
+  '390x844@3': 6.037, '428x926@3': 6.011, '393x852@3': 6.037, '430x932@3': 6.037,
+  '402x874@3': 6.037, '440x956@3': 6.037, '420x912@3': 6.037
+  // 375x812@3 is left out on purpose: X/XS/11 Pro and 12/13 mini share it but differ in size.
+};
+function screenScale() {
+  const saved = store.get('pxPerMm', 0);
+  if (saved) return { v: saved, sure: true, src: 'measured' };
+  const w = Math.min(screen.width, screen.height), h = Math.max(screen.width, screen.height);
+  const key = w + 'x' + h + '@' + Math.round(window.devicePixelRatio || 1);
+  if (/iPhone/.test(navigator.userAgent) && IPHONE_PX_PER_MM[key]) return { v: IPHONE_PX_PER_MM[key], sure: true, src: 'model' };
+  return { v: 6.1, sure: false, src: 'guess' };
+}
+
 let markerReturn = 'home';
-function showMarker() {
-  markerReturn = $('#play').classList.contains('on') ? 'play' : 'home';
+function showMarker(keepReturn) {
+  if (keepReturn !== true) markerReturn = $('#play').classList.contains('on') ? 'play' : 'home';
   $('#markerSvg').innerHTML = BULLSEYE_SVG;
   show('markerScreen'); keepAwake();
   document.querySelectorAll('#sizes button').forEach(b => b.classList.toggle('sel', +b.dataset.cm === printCm));
-  // Phones don't report their physical screen size; ~6.1 CSS px per mm is typical, so this is an estimate.
-  const ringPx = $('#markerSvg svg').getBoundingClientRect().width * 0.94;
-  const cm = Math.round(ringPx / 6.1 / 5) / 2;
-  $('#screenSize').textContent = 'Draw it: a thick closed ring about 9 cm across with a solid dot in the middle. Or print it. Or lay this phone flat as the target: the ring here is roughly ' + cm + ' cm, so set that as the target size.';
+  const sc = screenScale();
+  // the ring is 94% of the drawing's width, so the drawing is SCREEN_CM / 0.94 wide
+  $('#markerSvg svg').style.width = (SCREEN_CM * 10 / 0.94 * sc.v) + 'px';
+  $('#screenSize').textContent = sc.sure
+    ? 'This ring is ' + SCREEN_CM + ' cm across. To use this phone as the target, lay it flat at full brightness and pick ' + SCREEN_CM + ' cm as the target size.'
+    : 'This ring should be ' + SCREEN_CM + ' cm across, but this phone\'s screen size is a guess. Check it once with a bank card.';
+  $('#btnCheckSize').textContent = sc.src === 'measured' ? 'Re-check size with a card' : 'Check size with a card';
+  $('#btnCheckSize').classList.toggle('need', !sc.sure);
+}
+
+// Bank-card check: every bank card is 53.98 mm on its short edge.
+let calV = 6.1;
+function renderCal() { $('#calBar').style.width = (53.98 * calV) + 'px'; }
+function showCal() { calV = screenScale().v; renderCal(); show('calScreen'); }
+function holdRepeat(btn, fn) {
+  let t1, t2;
+  const stop = () => { clearTimeout(t1); clearInterval(t2); };
+  btn.addEventListener('pointerdown', () => { fn(); stop(); t1 = setTimeout(() => { t2 = setInterval(fn, 50); }, 350); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, stop));
 }
 
 // True-size printing, following workshop-kit's approach: the page is described in millimetres, the @page
@@ -813,20 +924,17 @@ function printTarget() {
   $('#printSheet').innerHTML = svg;
   let st = $('#pageStyle'); if (!st) { st = document.createElement('style'); st.id = 'pageStyle'; document.head.appendChild(st); }
   st.textContent = `@page { size: ${P.w}mm ${P.h}mm; margin: 0; }`;
-  cfg.markerCm = printCm; store.set('markerCm', printCm); $('#markerCm').value = printCm; showStep('markerCm');
+  cfg.markerCm = printCm; store.set('markerCm', printCm); $('#markerCm').value = printCm; showStep('markerCm'); customSize = false; renderSize();
   setTimeout(() => window.print(), 100);
 }
 
 // ---------- wire up UI ----------
 function saveSettings() {
-  cfg.name = $('#name').value.trim(); store.set('name', cfg.name);
   cfg.markerCm = Math.max(1, +$('#markerCm').value || 9); store.set('markerCm', cfg.markerCm);
   cfg.grace = Math.min(5, Math.max(0.25, +$('#grace').value || 1.5)); store.set('grace', cfg.grace);
 }
 function calibInfo() { $('#calibInfo').textContent = cfg.calibrated ? 'Distance calibrated on this phone.' : 'Distance not calibrated: using a typical phone camera estimate. Hold the phone 50 cm from the target and tap Calibrate.'; }
-$('#name').value = cfg.name; $('#markerCm').value = cfg.markerCm; $('#grace').value = cfg.grace; calibInfo();
-$('#name').addEventListener('change', saveSettings);
-$('#name').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+$('#markerCm').value = cfg.markerCm; $('#grace').value = cfg.grace; calibInfo();
 // steppers: big - / + buttons instead of typing numbers
 function showStep(id) { const i = $('#' + id); $('#' + id + 'Out').textContent = (+i.value) + i.dataset.unit; }
 document.querySelectorAll('.stepper button').forEach(b => b.onclick = () => {
@@ -860,7 +968,7 @@ $('#btnSound').onclick = () => {
 
 // ----- setup flow: role -> (name) -> sound -> camera -> lobby -----
 let role = null, stepIdx = 0;
-const flow = () => role === 'solo' ? ['stepRole', 'stepSound', 'stepCam'] : ['stepRole', 'stepName', 'stepSound', 'stepCam'];
+const flow = () => role === 'join' ? ['stepRole', 'stepName', 'stepSound', 'stepCam'] : ['stepRole', 'stepSound', 'stepCam'];
 function goStep(i) {
   stepIdx = Math.max(0, i);
   const id = flow()[stepIdx];
@@ -870,8 +978,6 @@ function goStep(i) {
 }
 function pickRole(r) {
   role = r; unlockAudio();
-  $('#codeWrap').classList.toggle('hidden', r !== 'join');
-  $('#nameTitle').textContent = r === 'join' ? 'Join a game' : 'Host a game';
   $('#btnCamNext').textContent = r === 'join' ? 'Join game' : r === 'host' ? 'Open lobby' : 'Continue';
   goStep(1);
 }
@@ -883,13 +989,21 @@ $('#btnNameNext').onclick = () => {
   if (role === 'join' && $('#joinCode').value.trim().length !== 4) { toast('Enter the 4-letter room code'); return; }
   saveSettings(); goStep(stepIdx + 1);
 };
-$('#joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('#name').focus(); });
+$('#joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
 $('#btnSoundNext').onclick = () => goStep(stepIdx + 1);
 $('#btnCamNext').onclick = () => {
   saveSettings();
   if (role === 'host') hostGame(true); else if (role === 'join') joinGame($('#joinCode').value); else hostGame(false);
 };
 $('#btnSettings').onclick = () => { settingsOpen = true; renderLobby(); };
+// icon picker: icons other players already use are greyed out
+$('#btnEmoji').onclick = () => {
+  const taken = Object.entries(players).filter(([k]) => k !== myId).map(([, pl]) => pl.name);
+  $('#emojiGrid').innerHTML = EMOJI.map(e => `<button class="${e === cfg.name ? 'sel' : ''}" ${taken.includes(e) ? 'disabled' : ''}>${e}</button>`).join('');
+  document.querySelectorAll('#emojiGrid button').forEach(b => b.onclick = () => { setEmoji(b.textContent); emojiOpen = false; renderLobby(); });
+  emojiOpen = true; renderLobby();
+};
+$('#btnEmojiClose').onclick = () => { emojiOpen = false; renderLobby(); };
 $('#btnSettingsDone').onclick = () => { settingsOpen = false; renderLobby(); };
 $('#btnSoundCheck').onclick = () => {
   if (isHost && online) { const order = Object.keys(players).sort(); broadcast({ t: 'soundcheck', order }); runSoundCheck(order); }
@@ -898,6 +1012,28 @@ $('#btnSoundCheck').onclick = () => {
 
 $('#btnMarker').onclick = showMarker;
 $('#btnMarkerBack').onclick = () => show(markerReturn);
+$('#btnCheckSize').onclick = showCal;
+holdRepeat($('#calMinus'), () => { calV *= 0.995; renderCal(); });
+holdRepeat($('#calPlus'), () => { calV *= 1.005; renderCal(); });
+$('#calDone').onclick = () => { store.set('pxPerMm', Math.round(calV * 1000) / 1000); showMarker(true); toast('Screen size saved on this phone'); };
+
+// target size: fixed sizes first, exact value only after tapping Custom
+let customSize = !SIZES.includes(cfg.markerCm);
+function renderSize() {
+  $('#sizeChips').classList.toggle('hidden', customSize);
+  $('#sizeStepper').classList.toggle('hidden', !customSize);
+  $('#btnCustomSize').textContent = customSize ? 'Fixed sizes' : 'Custom…';
+  document.querySelectorAll('#sizeChips button').forEach(b => b.classList.toggle('sel', +b.dataset.cm === cfg.markerCm));
+}
+function setSize(cm) { $('#markerCm').value = cm; showStep('markerCm'); saveSettings(); pushSettings(); renderSize(); }
+document.querySelectorAll('#sizeChips button').forEach(b => b.onclick = () => setSize(+b.dataset.cm));
+$('#btnCustomSize').onclick = () => {
+  customSize = !customSize;
+  // going back to fixed sizes snaps to the nearest one
+  if (!customSize && !SIZES.includes(cfg.markerCm)) setSize(SIZES.reduce((a, b) => Math.abs(b - cfg.markerCm) < Math.abs(a - cfg.markerCm) ? b : a));
+  renderSize();
+};
+renderSize();
 $('#btnTarget2').onclick = showMarker;
 $('#btnPrint').onclick = printTarget;
 document.querySelectorAll('#sizes button').forEach(b => b.onclick = () => {
@@ -929,7 +1065,7 @@ requestAnimationFrame(loop);
 // If the camera was already allowed on an earlier visit, warm it up now so the camera step is instant.
 try { navigator.permissions.query({ name: 'camera' }).then(st => { if (st.state === 'granted') startCamera(); }).catch(() => {}); } catch {}
 const qRoom = new URLSearchParams(location.search).get('room');
-if (qRoom) { $('#joinCode').value = qRoom.toUpperCase().slice(0, 4); pickRole('join'); }
+if (qRoom) { $('#joinCode').value = qRoom.toUpperCase().slice(0, 4); pickRole('join'); goStep(2); }   // code already known: skip to sound
 </script>
 </body>
 </html>
