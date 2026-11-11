@@ -34,8 +34,6 @@
   #joinCode { text-transform:uppercase; text-align:center; font-size:26px; font-weight:800; letter-spacing:6px; margin-top:12px; }
   #dialog { position:fixed; inset:0; background:#000c; z-index:20; display:flex; align-items:center; justify-content:center; padding:20px; }
   #dialog > div { background:#1c1c1c; border-radius:18px; padding:20px; max-width:420px; width:100%; font-size:19px; }
-  #roll { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-size:52px; font-weight:900; background:#000b; pointer-events:none; z-index:5; padding:20px; }
-  #roll small { font-size:20px; font-weight:400; color:#ccc; }
   .row { display:flex; gap:10px; } .row > * { flex:1; }
   .hint { font-size:16px; color:#bbb; margin-top:8px; }
   details { margin-top:18px; } summary { color:#bbb; cursor:pointer; padding:16px 0; font-size:18px; }
@@ -127,6 +125,19 @@
   .or::before, .or::after { content:''; flex:1; height:1px; background:#3a3a3a; }
   #markerScreen .tools { display:flex; gap:10px; margin-top:16px; }
   #markerScreen button { background:#eee; color:#000; width:auto; padding:12px 26px; margin:0; }
+  #howScreen { background:var(--bg); }
+  .how { display:flex; flex-direction:column; justify-content:center; height:100%; max-width:480px; margin:0 auto;
+    padding:max(16px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom)); }
+  .how h2 { font-size:34px; margin:0 0 14px; letter-spacing:-.5px; }
+  .how ol { list-style:none; margin:0 0 10px; padding:0; counter-reset:how; }
+  .how li { counter-increment:how; position:relative; padding:0 0 0 52px; margin:0 0 16px; font-size:18px; color:#ccc; line-height:1.3; min-height:40px; }
+  .how li::before { content:counter(how); position:absolute; left:0; top:0; width:40px; height:40px; border-radius:50%; background:#2a2a2a; color:var(--fg); font-size:21px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .how li b { display:block; color:var(--fg); font-size:20px; }
+  .how button { min-height:66px; font-size:21px; }
+  /* joined players see the host's settings but cannot change them */
+  .readonly button { pointer-events:none; }
+  .readonly .stepper button { visibility:hidden; }
+  .readonly .modes button:not(.sel), .readonly .sizeChips button:not(.sel) { opacity:.35; }
   #printSheet { display:none; }
   .chips { display:flex; gap:10px; margin-top:14px; }
   .chips button { margin:0; background:#eee; color:#000; border:3px solid transparent; min-width:84px; }
@@ -157,7 +168,7 @@
       <div class="or">or</div>
       <button class="card" id="btnSolo" style="margin-top:0"><b>Play unsynced</b>No connection: each phone runs on its own</button>
     </div>
-    <div class="stepFoot"><button id="btnMarker">Make, show or print the target</button></div>
+    <div class="stepFoot"><div class="row"><button id="btnHow">How to play</button><button id="btnMarker">The target</button></div></div>
   </div>
 
   <div class="step" id="stepName">
@@ -190,7 +201,7 @@
         <span id="camStatus" class="pill">Starting camera…</span>
         <button id="btnCam" class="primary hidden">Allow camera</button>
       </div>
-      <p style="margin:0">Point at the target. A green ring means your phone has found it.</p>
+      <p style="margin:0">Point at the target. A green ring and a chime mean your phone has found it.</p>
     </div>
     <div class="stepFoot"><button class="primary" id="btnCamNext">Continue</button></div>
   </div>
@@ -214,7 +225,6 @@
   <div class="hud bottom"><div class="plist" id="plist"></div></div>
 
   <div id="countdown" class="hidden"></div>
-  <div id="roll" class="hidden"></div>
   <div id="outScreen" class="hidden">OUT<small id="outInfo"></small></div>
 
   <div class="panel" id="lobbyPanel">
@@ -227,12 +237,11 @@
       <button class="small" id="btnEmoji" style="flex:0 0 auto;margin:0"></button>
     </div>
     <div id="lobbyPlayers" style="margin:8px 0"></div>
-    <div class="hint">Point at the target. Everyone needs a green lock before starting.</div>
+    <div class="hint">Point at the target: your phone chimes when it finds it. No chime? Turn the volume up and Silent mode off.</div>
     <button class="primary" id="btnStart">Start (3-second countdown)</button>
-    <button id="btnSettings"></button>
     <div class="row">
-      <button id="btnSoundCheck">🔊 Sound check</button>
-      <button id="btnLeave">Leave</button>
+      <button id="btnSettings"></button>
+      <button id="btnLeave" style="flex:0 0 auto;width:auto;padding:14px 20px">Leave</button>
     </div>
   </div>
 
@@ -243,6 +252,7 @@
   </div>
 
   <div class="panel hidden" id="settingsPanel">
+    <div class="hint hidden" id="hostOnly" style="font-size:18px;color:var(--fg);margin:0 0 8px">Set by the host. Only they can change these.</div>
     <div id="hostSettings">
       <div class="modes" id="modes">
         <button data-mode="classic"><b>Classic</b>Just keep sight</button>
@@ -263,7 +273,6 @@
       <div class="stepper hidden" id="sizeStepper" style="margin-top:6px"><button data-for="markerCm" data-d="-1">−</button><output id="markerCmOut"></output><button data-for="markerCm" data-d="1">+</button></div>
       <input id="markerCm" type="hidden" data-min="3" data-max="60" data-step="0.5" data-unit=" cm">
     </div>
-    <div class="hint hidden" id="hostOnly" style="font-size:20px;color:var(--fg);margin:0 0 6px"></div>
     <div class="row">
       <button id="btnCalib">Calibrate at 50 cm</button>
       <button id="btnDebug">Camera view</button>
@@ -281,6 +290,19 @@
     <button class="primary" id="btnAgain">Back to lobby</button>
   </div>
 </section>
+
+<!-- HOW TO PLAY -->
+<section id="howScreen" class="screen"><div class="how">
+  <h2>How to play</h2>
+  <ol>
+    <li><b>Put the target on a table.</b>Draw it, print it, or show it on a spare phone.</li>
+    <li><b>Point your camera at it.</b>Your phone chimes and shows a green ring when it sees the target.</li>
+    <li><b>Stop the others seeing it.</b>Block their camera, cover the target, move it, stand in the way.</li>
+    <li><b>Lose sight and your phone beeps.</b>Your bar drains until you find the target again. Empty bar: you're out.</li>
+    <li><b>Last phone still seeing it wins.</b></li>
+  </ol>
+  <button class="primary" id="btnHowBack">Got it</button>
+</div></section>
 
 <!-- TARGET -->
 <section id="markerScreen" class="screen"><div class="wrap">
@@ -369,7 +391,9 @@ function beep(freq = 440, dur = 0.12, vol = 0.6, type = 'square', when = 0, slid
 const TONES = [523, 659, 784, 988, 1175, 1397, 440, 880];
 function toneOf(id) { const i = Object.keys(players).sort().indexOf(id); return TONES[(i < 0 ? 0 : i) % TONES.length]; }
 const snd = {
-  hello: id => { const f = toneOf(id); beep(f, .16, .7); beep(f * 1.5, .3, .7, 'square', .17); },  // sound test / roll call
+  hello: id => { const f = toneOf(id); beep(f, .16, .7); beep(f * 1.5, .3, .7, 'square', .17); },  // sound test
+  found: () => { const f = toneOf(myId); beep(f, .1, .6); beep(f * 1.5, .2, .6, 'square', .1); },   // target came into view (before a round)
+  lost:  () => { const f = toneOf(myId); beep(f * 1.5, .1, .5); beep(f, .2, .5, 'square', .1); },   // target went out of view (before a round)
   warn:  () => beep(toneOf(myId), .09, .7),                                                       // losing sight (repeats)
   safe:  () => beep(toneOf(myId) * 2, .08, .4, 'sine'),                                            // got it back
   out:   () => beep(420, .9, .9, 'sawtooth', 0, 70),                                               // eliminated
@@ -578,6 +602,7 @@ let game = { state: 'lobby', mode: 'classic', seed: 1, grace: 1.5, targetCm: 0 }
 let t0 = 0, startAt = 0, myHealth = 1, myAlive = true, myValid = false, lastFrame = 0, lastSend = 0, lastPhase = -1, wasWarning = false;
 
 function me() { return players[myId]; }
+function isGuest() { return online && !isHost; }   // joined someone else's game: the host's settings apply
 function targetCm() { return (!isHost && online && game.targetCm) || cfg.markerCm; }
 function resetPlayersForRound() { for (const p of Object.values(players)) Object.assign(p, { alive: true, health: 1, outAt: null }); }
 
@@ -677,20 +702,7 @@ function onClientMsg(d) {
   else if (d.t === 'out') { if (d.id !== myId) toast(d.name + ' is out!'); }
   else if (d.t === 'end') showEnd(d);
   else if (d.t === 'lobby') backToLobby(false);
-  else if (d.t === 'soundcheck') runSoundCheck(d.order);
   else if (d.t === 'game') { game = d.game; renderLobby(); }
-}
-
-// ----- sound check: every phone plays its own tone in turn, so a silent phone is obvious -----
-function runSoundCheck(order) {
-  const el = $('#roll'), gap = 1100;
-  order.forEach((id, i) => setTimeout(() => {
-    const p = players[id]; if (!p) return;
-    el.innerHTML = '🔊 ' + esc(p.name) + '<small>' + (id === myId ? 'This is your phone. Can everyone hear it?' : 'Listen for their phone') + '</small>';
-    el.classList.remove('hidden');
-    if (id === myId) { snd.hello(myId); buzz(60); }
-  }, i * gap));
-  setTimeout(() => el.classList.add('hidden'), order.length * gap);
 }
 
 // Host changed a lobby setting: tell everyone straight away so they see the rules before the round.
@@ -722,12 +734,18 @@ function renderLobby() {
   $('#endPanel').classList.add('hidden');
   $('#btnStart').classList.toggle('hidden', !isHost);
   const mode = isHost ? $('#mode').value : game.mode, grace = isHost ? cfg.grace : game.grace;
-  $('#btnSettings').textContent = MODE_NAMES[mode] + ' · ' + grace + ' s grace · ⚙ Settings';
-  $('#hostSettings').classList.toggle('hidden', !isHost);
-  $('#hostOnly').classList.toggle('hidden', isHost);
-  $('#hostOnly').textContent = 'Set by the host: ' + MODE_NAMES[mode] + ', ' + grace + ' s grace, ' + sizeLabel(game.targetCm) + '.';
+  $('#btnSettings').textContent = '⚙ ' + MODE_NAMES[mode] + ' · ' + grace + ' s';
+  $('#hostSettings').classList.toggle('readonly', isGuest());
+  $('#hostOnly').classList.toggle('hidden', !isGuest());
+  if (isGuest()) {   // show the host's values on the same controls, locked
+    document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('sel', b.dataset.mode === game.mode));
+    $('#graceOut').textContent = game.grace + ' s';
+    const sel = game.targetCm === SCREEN_CM ? 'screen' : game.targetCm === PRINT_CM ? 'print' : 'custom';
+    document.querySelectorAll('#sizeChips button').forEach(b => b.classList.toggle('sel', b.dataset.size === sel));
+    $('#sizeStepper').classList.toggle('hidden', sel !== 'custom');
+    $('#markerCmOut').textContent = game.targetCm + ' cm';
+  }
   $('#lobbyTitle').textContent = !online ? 'Unsynced game' : isHost ? 'Lobby' : 'Waiting for host';
-  $('#btnSoundCheck').textContent = isHost && online ? '🔊 Sound check' : '🔊 Test sound';
   $('#outScreen').classList.add('hidden'); $('#countdown').classList.add('hidden');
 }
 function beginRound(countdownMs) {
@@ -758,12 +776,21 @@ function backToLobby(notify) {
 }
 
 // ---------- main loop ----------
+// Before a round, finding or losing the target makes a sound. It shows the phone's sound is on
+// without a separate test, and teaches the link between what the camera sees and what you hear.
+let heardSeen = false;
+function seenSound() {
+  if (track.seen === heardSeen) return;
+  heardSeen = track.seen;
+  if (track.seen) { snd.found(); buzz(40); } else snd.lost();
+}
 function loop(ts) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.1, (ts - (lastFrame || ts)) / 1000); lastFrame = ts;
-  if ($('#home').classList.contains('on')) { trackFrame(); drawHome(); return; }
+  if ($('#home').classList.contains('on')) { trackFrame(); drawHome(); if ($('#stepCam').classList.contains('on')) seenSound(); return; }
   if (!$('#play').classList.contains('on')) return;
   trackFrame();
+  if (game.state === 'lobby') seenSound();
 
   let band = { min: 0, max: Infinity }, t = 0;
   if (game.state === 'countdown') {
@@ -838,7 +865,6 @@ const SCREEN_CM = 5;
 const PRINT_CM = 9;     // the standard printout: small enough to carry, two to a page
 // Print the standard size, unless a custom size that fits on the paper is set.
 function printCmNow() { return customSize && cfg.markerCm <= 18 ? cfg.markerCm : PRINT_CM; }
-function sizeLabel(cm) { return cm === SCREEN_CM ? 'phone-screen target' : cm === PRINT_CM ? 'printout target' : cm + ' cm target'; }
 
 // How many CSS pixels make a millimetre on this screen. Browsers don't report it, so:
 //  1. use a saved measurement (bank-card check), else
@@ -934,6 +960,7 @@ $('#markerCm').value = cfg.markerCm; $('#grace').value = cfg.grace; calibInfo();
 // steppers: big - / + buttons instead of typing numbers
 function showStep(id) { const i = $('#' + id); $('#' + id + 'Out').textContent = (+i.value) + i.dataset.unit; }
 document.querySelectorAll('.stepper button').forEach(b => b.onclick = () => {
+  if (isGuest()) return;
   const i = $('#' + b.dataset.for), st = +i.dataset.step;
   i.value = Math.min(+i.dataset.max, Math.max(+i.dataset.min, Math.round((+i.value + st * +b.dataset.d) / st) * st));
   showStep(b.dataset.for); saveSettings(); pushSettings();
@@ -945,7 +972,7 @@ function setMode(m) {
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('sel', b.dataset.mode === m));
   pushSettings();
 }
-document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+document.querySelectorAll('#modes button').forEach(b => b.onclick = () => { if (!isGuest()) setMode(b.dataset.mode); });
 setMode(store.get('mode', 'classic'));
 // in-page yes/no dialog (no browser pop-ups)
 function ask(msg) {
@@ -1001,12 +1028,10 @@ $('#btnEmoji').onclick = () => {
 };
 $('#btnEmojiClose').onclick = () => { emojiOpen = false; renderLobby(); };
 $('#btnSettingsDone').onclick = () => { settingsOpen = false; renderLobby(); };
-$('#btnSoundCheck').onclick = () => {
-  if (isHost && online) { const order = Object.keys(players).sort(); broadcast({ t: 'soundcheck', order }); runSoundCheck(order); }
-  else { snd.hello(myId); buzz(60); }
-};
 
 $('#btnMarker').onclick = showMarker;
+$('#btnHow').onclick = () => show('howScreen');
+$('#btnHowBack').onclick = () => show('home');
 $('#btnMarkerBack').onclick = () => show(markerReturn);
 $('#btnCheckSize').onclick = showCal;
 holdRepeat($('#calMinus'), () => { calV *= 0.995; renderCal(); });
@@ -1022,6 +1047,7 @@ function renderSize() {
 }
 function setSize(cm) { $('#markerCm').value = cm; showStep('markerCm'); saveSettings(); pushSettings(); renderSize(); }
 document.querySelectorAll('#sizeChips button').forEach(b => b.onclick = () => {
+  if (isGuest()) return;
   customSize = b.dataset.size === 'custom'; store.set('customSize', customSize);
   if (!customSize) setSize(b.dataset.size === 'screen' ? SCREEN_CM : PRINT_CM);
   renderSize();
