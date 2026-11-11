@@ -109,8 +109,8 @@
   #calUI button { background:#eee; color:#000; }
   #calUI #calDone { background:#000; color:#fff; }
   .sizeChips { display:flex; gap:10px; margin-top:6px; }
-  .sizeChips button { margin:0; min-height:54px; padding:4px; border:2px solid transparent; font-weight:400; font-size:13px; color:#bbb; line-height:1.15; }
-  .sizeChips button b { display:block; font-size:19px; color:var(--fg); }
+  .sizeChips button { margin:0; min-height:54px; padding:4px; flex:1; border:2px solid transparent; font-weight:400; font-size:13px; color:#bbb; line-height:1.15; }
+  .sizeChips button b { display:block; font-size:17px; color:var(--fg); }
   .sizeChips button.sel { border-color:var(--fg); background:#3a3a3a; }
   #emojiPanel { top:max(10px,env(safe-area-inset-top)); bottom:max(10px,env(safe-area-inset-bottom)); max-height:none; z-index:6; background:#111; padding:16px; display:flex; flex-direction:column; justify-content:center; }
   #emojiPanel.hidden { display:none !important; }
@@ -256,12 +256,9 @@
       <label style="margin-top:12px">Grace: time without sight before you're out</label>
       <div class="stepper"><button data-for="grace" data-d="-1">−</button><output id="graceOut"></output><button data-for="grace" data-d="1">+</button></div>
       <input id="grace" type="hidden" data-min="0.25" data-max="5" data-step="0.25" data-unit=" s">
-      <div class="row" style="align-items:center;margin-top:10px">
-        <label style="margin:0">Target size</label>
-        <button class="small" id="btnCustomSize" style="flex:0 0 auto;margin:0">Custom…</button>
-      </div>
+      <label style="margin-top:10px">Target</label>
       <div class="sizeChips" id="sizeChips">
-        <button data-cm="5"><b>5 cm</b>phone screen</button><button data-cm="9"><b>9 cm</b>pocket</button><button data-cm="18"><b>18 cm</b>full page</button>
+        <button data-size="screen"><b>Phone screen</b></button><button data-size="print"><b>Printout</b></button><button data-size="custom"><b>Custom</b></button>
       </div>
       <div class="stepper hidden" id="sizeStepper" style="margin-top:6px"><button data-for="markerCm" data-d="-1">−</button><output id="markerCmOut"></output><button data-for="markerCm" data-d="1">+</button></div>
       <input id="markerCm" type="hidden" data-min="3" data-max="60" data-step="0.5" data-unit=" cm">
@@ -290,10 +287,7 @@
   <div id="markerSvg"></div>
   <p id="screenSize" style="max-width:420px;text-align:center;font-size:17px;margin:12px 0 0"></p>
   <button id="btnCheckSize" style="margin-top:12px">Check size with a card</button>
-  <div class="chips" id="sizes">
-    <button data-cm="5">5 cm</button><button data-cm="9">9 cm</button><button data-cm="18">18 cm</button>
-  </div>
-  <div class="tools"><button id="btnPrint">Print</button><button id="btnMarkerBack">Back</button></div>
+  <div class="tools"><button id="btnPrint">Print a target</button><button id="btnMarkerBack">Back</button></div>
 </div></section>
 
 <!-- SCREEN SIZE CHECK -->
@@ -731,7 +725,7 @@ function renderLobby() {
   $('#btnSettings').textContent = MODE_NAMES[mode] + ' · ' + grace + ' s grace · ⚙ Settings';
   $('#hostSettings').classList.toggle('hidden', !isHost);
   $('#hostOnly').classList.toggle('hidden', isHost);
-  $('#hostOnly').textContent = 'Set by the host: ' + MODE_NAMES[mode] + ', ' + grace + ' s grace, ' + game.targetCm + ' cm target.';
+  $('#hostOnly').textContent = 'Set by the host: ' + MODE_NAMES[mode] + ', ' + grace + ' s grace, ' + sizeLabel(game.targetCm) + '.';
   $('#lobbyTitle').textContent = !online ? 'Unsynced game' : isHost ? 'Lobby' : 'Waiting for host';
   $('#btnSoundCheck').textContent = isHost && online ? '🔊 Sound check' : '🔊 Test sound';
   $('#outScreen').classList.add('hidden'); $('#countdown').classList.add('hidden');
@@ -840,9 +834,11 @@ function renderPlayers() {
 // Ring outer diameter is 94 of 100 units.
 const BULLSEYE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#fff"/>' +
   '<circle cx="50" cy="50" r="42" fill="none" stroke="#000" stroke-width="10"/><circle cx="50" cy="50" r="16" fill="#000"/></svg>';
-const SIZES = [5, 9, 18];           // standard target sizes in cm; 5 cm is what a phone screen shows
 const SCREEN_CM = 5;
-let printCm = SIZES.includes(cfg.markerCm) ? cfg.markerCm : 9;
+const PRINT_CM = 9;     // the standard printout: small enough to carry, two to a page
+// Print the standard size, unless a custom size that fits on the paper is set.
+function printCmNow() { return customSize && cfg.markerCm <= 18 ? cfg.markerCm : PRINT_CM; }
+function sizeLabel(cm) { return cm === SCREEN_CM ? 'phone-screen target' : cm === PRINT_CM ? 'printout target' : cm + ' cm target'; }
 
 // How many CSS pixels make a millimetre on this screen. Browsers don't report it, so:
 //  1. use a saved measurement (bank-card check), else
@@ -869,12 +865,11 @@ function showMarker(keepReturn) {
   if (keepReturn !== true) markerReturn = $('#play').classList.contains('on') ? 'play' : 'home';
   $('#markerSvg').innerHTML = BULLSEYE_SVG;
   show('markerScreen'); keepAwake();
-  document.querySelectorAll('#sizes button').forEach(b => b.classList.toggle('sel', +b.dataset.cm === printCm));
   const sc = screenScale();
   // the ring is 94% of the drawing's width, so the drawing is SCREEN_CM / 0.94 wide
   $('#markerSvg svg').style.width = (SCREEN_CM * 10 / 0.94 * sc.v) + 'px';
   $('#screenSize').textContent = sc.sure
-    ? 'This ring is ' + SCREEN_CM + ' cm across. To use this phone as the target, lay it flat at full brightness and pick ' + SCREEN_CM + ' cm as the target size.'
+    ? 'This ring is ' + SCREEN_CM + ' cm across. To use this phone as the target, lay it flat at full brightness and pick "Phone screen" as the target in settings.'
     : 'This ring should be ' + SCREEN_CM + ' cm across, but this phone\'s screen size is a guess. Check it once with a bank card.';
   $('#btnCheckSize').textContent = sc.src === 'measured' ? 'Re-check size with a card' : 'Check size with a card';
   $('#btnCheckSize').classList.toggle('need', !sc.sure);
@@ -920,11 +915,12 @@ function printSheetSvg(cm) {
   return { svg: o + '</svg>', P };
 }
 function printTarget() {
-  const { svg, P } = printSheetSvg(printCm);
+  const cm = printCmNow();
+  const { svg, P } = printSheetSvg(cm);
   $('#printSheet').innerHTML = svg;
   let st = $('#pageStyle'); if (!st) { st = document.createElement('style'); st.id = 'pageStyle'; document.head.appendChild(st); }
   st.textContent = `@page { size: ${P.w}mm ${P.h}mm; margin: 0; }`;
-  cfg.markerCm = printCm; store.set('markerCm', printCm); $('#markerCm').value = printCm; showStep('markerCm'); customSize = false; renderSize();
+  if (!customSize) setSize(PRINT_CM);   // printing the standard target selects "Printout"
   setTimeout(() => window.print(), 100);
 }
 
@@ -1018,28 +1014,21 @@ holdRepeat($('#calPlus'), () => { calV *= 1.005; renderCal(); });
 $('#calDone').onclick = () => { store.set('pxPerMm', Math.round(calV * 1000) / 1000); showMarker(true); toast('Screen size saved on this phone'); };
 
 // target size: fixed sizes first, exact value only after tapping Custom
-let customSize = !SIZES.includes(cfg.markerCm);
+let customSize = store.get('customSize', false) || ![SCREEN_CM, PRINT_CM].includes(cfg.markerCm);
 function renderSize() {
-  $('#sizeChips').classList.toggle('hidden', customSize);
-  $('#sizeStepper').classList.toggle('hidden', !customSize);
-  $('#btnCustomSize').textContent = customSize ? 'Fixed sizes' : 'Custom…';
-  document.querySelectorAll('#sizeChips button').forEach(b => b.classList.toggle('sel', +b.dataset.cm === cfg.markerCm));
+  const sel = customSize ? 'custom' : cfg.markerCm === SCREEN_CM ? 'screen' : 'print';
+  document.querySelectorAll('#sizeChips button').forEach(b => b.classList.toggle('sel', b.dataset.size === sel));
+  $('#sizeStepper').classList.toggle('hidden', !customSize);   // the exact size only shows under Custom
 }
 function setSize(cm) { $('#markerCm').value = cm; showStep('markerCm'); saveSettings(); pushSettings(); renderSize(); }
-document.querySelectorAll('#sizeChips button').forEach(b => b.onclick = () => setSize(+b.dataset.cm));
-$('#btnCustomSize').onclick = () => {
-  customSize = !customSize;
-  // going back to fixed sizes snaps to the nearest one
-  if (!customSize && !SIZES.includes(cfg.markerCm)) setSize(SIZES.reduce((a, b) => Math.abs(b - cfg.markerCm) < Math.abs(a - cfg.markerCm) ? b : a));
+document.querySelectorAll('#sizeChips button').forEach(b => b.onclick = () => {
+  customSize = b.dataset.size === 'custom'; store.set('customSize', customSize);
+  if (!customSize) setSize(b.dataset.size === 'screen' ? SCREEN_CM : PRINT_CM);
   renderSize();
-};
+});
 renderSize();
 $('#btnTarget2').onclick = showMarker;
 $('#btnPrint').onclick = printTarget;
-document.querySelectorAll('#sizes button').forEach(b => b.onclick = () => {
-  printCm = +b.dataset.cm;
-  document.querySelectorAll('#sizes button').forEach(x => x.classList.toggle('sel', x === b));
-});
 $('#btnStart').onclick = async () => {
   if (!isHost) return;
   // Pre-flight: a bad camera angle should be fixed before the round, not discovered as an unfair "out".
