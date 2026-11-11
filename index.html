@@ -123,7 +123,8 @@
   .p b { font-size:24px; font-weight:400; }
   .or { display:flex; align-items:center; gap:12px; color:#888; font-size:16px; margin:16px 0 4px; }
   .or::before, .or::after { content:''; flex:1; height:1px; background:#3a3a3a; }
-  #markerScreen .tools { display:flex; gap:10px; margin-top:16px; }
+  #markerScreen .tools { display:flex; gap:10px; margin-top:10px; width:100%; max-width:340px; }
+  #markerScreen .tools button { flex:1; padding:12px 8px; }
   #markerScreen button { background:#eee; color:#000; width:auto; padding:12px 26px; margin:0; }
   #howScreen { background:var(--bg); }
   .how { display:flex; flex-direction:column; justify-content:center; height:100%; max-width:480px; margin:0 auto;
@@ -309,7 +310,8 @@
   <div id="markerSvg"></div>
   <p id="screenSize" style="max-width:420px;text-align:center;font-size:17px;margin:12px 0 0"></p>
   <button id="btnCheckSize" style="margin-top:12px">Check size with a card</button>
-  <div class="tools"><button id="btnPrint">Print a target</button><button id="btnMarkerBack">Back</button></div>
+  <div class="tools"><button id="btnPrint">Print</button><button id="btnSaveImg">Save image</button></div>
+  <div class="tools"><button id="btnShareTarget">Share</button><button id="btnMarkerBack">Back</button></div>
 </div></section>
 
 <!-- SCREEN SIZE CHECK -->
@@ -1055,6 +1057,34 @@ document.querySelectorAll('#sizeChips button').forEach(b => b.onclick = () => {
 renderSize();
 $('#btnTarget2').onclick = showMarker;
 $('#btnPrint').onclick = printTarget;
+// Save the target as a PNG. On phones the share sheet is the way into Photos ("Save Image"); elsewhere it downloads.
+function targetPng() {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = c.height = 1200;
+      c.getContext('2d').drawImage(img, 0, 0, 1200, 1200);
+      c.toBlob(b => b ? res(b) : rej(new Error('no image')), 'image/png');
+    };
+    img.onerror = rej;
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(BULLSEYE_SVG.replace('<svg ', '<svg width="1200" height="1200" '));
+  });
+}
+$('#btnSaveImg').onclick = async () => {
+  try {
+    const blob = await targetPng(), file = new File([blob], 'sightline-target.png', { type: 'image/png' });
+    const touch = navigator.maxTouchPoints > 0 && matchMedia('(pointer: coarse)').matches;
+    if (touch && navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast('Target image saved');
+  } catch (e) { if (!e || e.name !== 'AbortError') toast("Couldn't save the image"); }
+};
+// A link that opens straight on this screen, so a friend's phone can be the target with one tap.
+$('#btnShareTarget').onclick = async () => {
+  const url = location.origin + location.pathname + '?target=1';
+  try { if (navigator.share) await navigator.share({ title: 'Sightline target', text: 'Sightline target', url }); else { await navigator.clipboard.writeText(url); toast('Link copied'); } } catch {}
+};
 $('#btnStart').onclick = async () => {
   if (!isHost) return;
   // Pre-flight: a bad camera angle should be fixed before the round, not discovered as an unfair "out".
@@ -1080,6 +1110,7 @@ requestAnimationFrame(loop);
 // If the camera was already allowed on an earlier visit, warm it up now so the camera step is instant.
 try { navigator.permissions.query({ name: 'camera' }).then(st => { if (st.state === 'granted') startCamera(); }).catch(() => {}); } catch {}
 const qRoom = new URLSearchParams(location.search).get('room');
+if (new URLSearchParams(location.search).has('target')) showMarker();   // shared target link: open on the target
 if (qRoom) { $('#joinCode').value = qRoom.toUpperCase().slice(0, 4); pickRole('join'); goStep(2); }   // code already known: skip to sound
 </script>
 </body>
