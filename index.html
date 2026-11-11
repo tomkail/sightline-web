@@ -43,6 +43,27 @@
   /* play screen */
   #video { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; }
   #home { background:var(--bg); }
+  /* setup flow: one step per screen, nothing scrolls */
+  .step { display:none; flex-direction:column; height:100%; max-width:480px; margin:0 auto;
+    padding:max(16px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom)); }
+  .step.on { display:flex; }
+  .stepHead { display:flex; justify-content:space-between; align-items:center; min-height:52px; color:#bbb; }
+  .stepHead .back { width:auto; margin:0; background:none; padding:10px 16px 10px 0; font-size:20px; min-height:52px; }
+  .stepBody { flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; overflow:auto; }
+  .stepBody h2 { font-size:34px; margin:0 0 8px; letter-spacing:-.5px; }
+  .stepBody p { margin:0 0 14px; font-size:19px; color:#ccc; }
+  .stepFoot button { min-height:66px; font-size:21px; }
+  .card { text-align:left; min-height:100px; padding:16px 18px; font-weight:400; font-size:17px; color:#bbb; line-height:1.3; }
+  .card b { display:block; font-size:25px; color:var(--fg); }
+  #btnSound { background:var(--ok); color:#000; min-height:110px; font-size:26px; }
+  #muteHelp { background:#33291a; border:1px solid #6b5327; border-radius:14px; padding:14px; margin-top:16px; font-size:18px; color:var(--fg); }
+  #stepCam .stepBody { justify-content:flex-start; }
+  #settingsPanel { top:max(10px,env(safe-area-inset-top)); bottom:max(10px,env(safe-area-inset-bottom)); max-height:none; z-index:6; background:#111; padding:14px 16px; display:flex; flex-direction:column; justify-content:center; }
+  #settingsPanel.hidden { display:none !important; }
+  #settingsPanel .modes button { min-height:66px; padding:8px 12px; }
+  #settingsPanel label { margin:10px 0 4px; }
+  #settingsPanel .stepper button, #settingsPanel .stepper output { min-height:54px; }
+  #stepCam #camBox { flex:1; height:auto; min-height:160px; margin:6px 0 10px; }
   #camBox { position:relative; height:230px; border-radius:16px; overflow:hidden; background:#000; margin:14px 0 0; }
   #homeCam { width:100%; height:100%; display:block; }
   #camStatus { position:absolute; left:10px; top:10px; }
@@ -100,49 +121,58 @@
 
 <video id="video" playsinline muted autoplay></video>
 
-<!-- HOME -->
-<section id="home" class="screen on"><div class="pad">
-  <h1>Sightline</h1>
-  <p class="sub">Keep the target in view. Block everyone else's. Last camera still seeing it wins.</p>
-  <div id="camBox">
-    <canvas id="homeCam"></canvas>
-    <span id="camStatus" class="pill">Starting camera…</span>
-    <button id="btnCam" class="primary hidden">Allow camera</button>
-  </div>
-  <p class="hint">This is what your phone sees. Point it at the target: a green ring means it has found it, and that is all you need to do in the game.</p>
-
-  <div class="soundbox">
-    <b>🔊 Sound on, volume up.</b> Your phone beeps when you're losing sight, so the others can hear who is in trouble. On iPhone, flip the silent switch off.
-    <button id="btnSound">Tap to test sound</button>
+<!-- HOME: setup flow -->
+<section id="home" class="screen on">
+  <div class="step on" id="stepRole">
+    <div class="stepBody">
+      <h1>Sightline</h1>
+      <p class="sub" style="margin-bottom:10px">Keep the target in view. Block everyone else's. Last camera still seeing it wins.</p>
+      <button class="card" id="btnHost"><b>Host a game</b>Friends join with your room code</button>
+      <button class="card" id="btnJoinRole"><b>Join a game</b>Enter a friend's room code</button>
+      <button class="card" id="btnSolo"><b>Play unsynced</b>No connection: each phone runs on its own</button>
+    </div>
+    <div class="stepFoot"><button id="btnMarker">Make, show or print the target</button></div>
   </div>
 
-  <label>Your name</label>
-  <input id="name" maxlength="14" placeholder="e.g. Sam" autocomplete="off" autocapitalize="words" enterkeyhint="done">
-
-  <label>Game mode</label>
-  <div class="modes" id="modes">
-    <button data-mode="classic"><b>Classic</b>Just keep sight</button>
-    <button data-mode="zone"><b>Zones</b>Stay in a moving distance band</button>
-    <button data-mode="retreat"><b>Retreat</b>Minimum distance grows</button>
-    <button data-mode="crowd"><b>Crowd in</b>Maximum distance shrinks</button>
+  <div class="step" id="stepName">
+    <div class="stepHead"><button class="back">‹ Back</button><span class="stepCount"></span></div>
+    <div class="stepBody">
+      <h2 id="nameTitle">Host a game</h2>
+      <div id="codeWrap">
+        <label>Room code</label>
+        <input id="joinCode" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="next" style="margin-top:0">
+      </div>
+      <label>Your name (optional)</label>
+      <input id="name" maxlength="14" placeholder="e.g. Sam" autocomplete="off" autocapitalize="words" enterkeyhint="done">
+    </div>
+    <div class="stepFoot"><button class="primary" id="btnNameNext">Continue</button></div>
   </div>
-  <select id="mode" class="hidden">
-    <option value="classic">Classic: just keep sight</option>
-    <option value="zone">Zones: stay inside a distance band that moves</option>
-    <option value="retreat">Retreat: minimum distance keeps growing</option>
-    <option value="crowd">Crowd in: maximum distance keeps shrinking</option>
-  </select>
 
-  <button class="primary" id="btnHost">Host a synced game</button>
-  <div class="row">
-    <input id="joinCode" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="go">
-    <button id="btnJoin">Join</button>
+  <div class="step" id="stepSound">
+    <div class="stepHead"><button class="back">‹ Back</button><span class="stepCount"></span></div>
+    <div class="stepBody">
+      <h2>Sound check</h2>
+      <p>Your phone beeps when you're losing sight, so everyone can hear who is in trouble.</p>
+      <button id="btnSound">🔊 Play test sound</button>
+      <div id="muteHelp" class="hidden"><b>Didn't hear it?</b> Your phone is probably muted. Turn the volume up and switch off Silent mode (on iPhone: the side switch, or the bell in Control Centre). Then play it again.</div>
+    </div>
+    <div class="stepFoot"><button class="primary" id="btnSoundNext">Skip</button></div>
   </div>
-  <button id="btnSolo">Play unsynced (this phone only)</button>
-  <button id="btnMarker">Show / print the target</button>
-  <p class="hint"><b>Make the target:</b> draw a thick closed ring about 9 cm across (a palm's width), with a stroke about as wide as a finger, then a solid dot in the middle about a third of the ring's width. Leave white space between them and go over the ring twice so it has no gaps. Bigger targets can be seen from further away. Or print one at exact size, or lay a spare phone flat showing the target.</p>
 
-</div></section>
+  <div class="step" id="stepCam">
+    <div class="stepHead"><button class="back">‹ Back</button><span class="stepCount"></span></div>
+    <div class="stepBody">
+      <h2>Camera check</h2>
+      <div id="camBox">
+        <canvas id="homeCam"></canvas>
+        <span id="camStatus" class="pill">Starting camera…</span>
+        <button id="btnCam" class="primary hidden">Allow camera</button>
+      </div>
+      <p style="margin:0">Point at the target. A green ring means your phone has found it.</p>
+    </div>
+    <div class="stepFoot"><button class="primary" id="btnCamNext">Continue</button></div>
+  </div>
+</section>
 
 <!-- PLAY -->
 <section id="play" class="screen">
@@ -171,25 +201,44 @@
       <div class="row" style="align-items:center"><div id="code">····</div><button class="small" id="btnShare" style="flex:0 0 auto">Share link</button></div>
     </div>
     <h2 id="lobbyTitle" style="margin-top:12px">Lobby</h2>
-    <div class="hint" id="lobbyMode"></div>
-    <div id="lobbyPlayers" style="margin:10px 0"></div>
-    <label style="margin-top:8px">Grace: how long you can lose sight before you're out</label>
-    <div class="stepper" id="graceStepper"><button data-for="grace" data-d="-1">−</button><output id="graceOut"></output><button data-for="grace" data-d="1">+</button></div>
-    <input id="grace" type="hidden" data-min="0.25" data-max="5" data-step="0.25" data-unit=" s">
-    <div class="hint hidden" id="graceInfo" style="font-size:19px;color:var(--fg)"></div>
-    <label style="margin-top:12px">Target size: width of the ring, edge to edge</label>
-    <div class="stepper" id="sizeStepper"><button data-for="markerCm" data-d="-1">−</button><output id="markerCmOut"></output><button data-for="markerCm" data-d="1">+</button></div>
-    <input id="markerCm" type="hidden" data-min="3" data-max="60" data-step="0.5" data-unit=" cm">
-    <div class="hint hidden" id="sizeInfo" style="font-size:19px;color:var(--fg)"></div>
-    <div class="hint" id="calibInfo"></div>
-    <div class="hint">Point your camera at the target. Everyone should show a green lock (80%+) before starting. If yours is low: move closer, add light, or tap Camera view to see what the detector sees.</div>
+    <div id="lobbyPlayers" style="margin:8px 0"></div>
+    <div class="hint">Point at the target. Everyone needs a green lock before starting.</div>
     <button class="primary" id="btnStart">Start (3-second countdown)</button>
-    <button id="btnSoundCheck">🔊 Sound check</button>
+    <button id="btnSettings"></button>
+    <div class="row">
+      <button id="btnSoundCheck">🔊 Sound check</button>
+      <button id="btnLeave">Leave</button>
+    </div>
+  </div>
+
+  <div class="panel hidden" id="settingsPanel">
+    <div id="hostSettings">
+      <div class="modes" id="modes">
+        <button data-mode="classic"><b>Classic</b>Just keep sight</button>
+        <button data-mode="zone"><b>Zones</b>Stay in a moving distance band</button>
+        <button data-mode="retreat"><b>Retreat</b>Minimum distance grows</button>
+        <button data-mode="crowd"><b>Crowd in</b>Maximum distance shrinks</button>
+      </div>
+      <select id="mode" class="hidden">
+        <option value="classic"></option><option value="zone"></option><option value="retreat"></option><option value="crowd"></option>
+      </select>
+      <label style="margin-top:12px">Grace: time without sight before you're out</label>
+      <div class="stepper"><button data-for="grace" data-d="-1">−</button><output id="graceOut"></output><button data-for="grace" data-d="1">+</button></div>
+      <input id="grace" type="hidden" data-min="0.25" data-max="5" data-step="0.25" data-unit=" s">
+      <label style="margin-top:12px">Target size: width of the ring</label>
+      <div class="stepper"><button data-for="markerCm" data-d="-1">−</button><output id="markerCmOut"></output><button data-for="markerCm" data-d="1">+</button></div>
+      <input id="markerCm" type="hidden" data-min="3" data-max="60" data-step="0.5" data-unit=" cm">
+    </div>
+    <div class="hint hidden" id="hostOnly" style="font-size:20px;color:var(--fg);margin:0 0 6px"></div>
     <div class="row">
       <button id="btnCalib">Calibrate at 50 cm</button>
       <button id="btnDebug">Camera view</button>
     </div>
-    <button id="btnLeave">Leave</button>
+    <div class="hint hidden" id="calibInfo"></div>
+    <div class="row">
+      <button id="btnTarget2">Target</button>
+      <button class="primary" id="btnSettingsDone">Done</button>
+    </div>
   </div>
 
   <div class="panel hidden" id="endPanel">
@@ -252,6 +301,8 @@ function unlockAudio() {
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state !== 'running') actx.resume();
+    // Safari 16.4+: 'playback' audio is not silenced by the iPhone silent switch.
+    if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
   } catch {}
 }
 document.addEventListener('pointerdown', unlockAudio, { passive: true });
@@ -542,6 +593,7 @@ function joinGame(code) {
   code = code.toUpperCase().trim();
   if (code.length !== 4) { toast('Enter the 4-letter room code'); return; }
   isHost = false; online = true; roomCode = code;
+  if (peer) { try { peer.destroy(); } catch {} }
   toast('Connecting…');
   peer = new Peer();
   peer.on('error', e => toast('Sync error: ' + e.type + (e.type === 'peer-unavailable' ? ' (wrong code?)' : '')));
@@ -578,9 +630,10 @@ function runSoundCheck(order) {
 
 // Host changed a lobby setting: tell everyone straight away so they see the rules before the round.
 function pushSettings() {
-  if (!isHost || game.state !== 'lobby') return;
+  if (!isHost || game.state !== 'lobby' || !$('#play').classList.contains('on')) return;
   game.grace = cfg.grace; game.mode = $('#mode').value; game.targetCm = cfg.markerCm;
   broadcast({ t: 'game', game });
+  renderLobby();
 }
 
 // ----- shared round flow -----
@@ -591,24 +644,28 @@ function enterPlay() {
   if (online && isHost && roomCode) $('#code').textContent = roomCode;
   renderLobby(); renderPlayers();
 }
+const MODE_NAMES = { classic: 'Classic', zone: 'Zones', retreat: 'Retreat', crowd: 'Crowd in' };
+let settingsOpen = false;
 function renderLobby() {
-  $('#lobbyPanel').classList.toggle('hidden', game.state !== 'lobby');
+  const inLobby = game.state === 'lobby';
+  if (!inLobby) settingsOpen = false;
+  $('#lobbyPanel').classList.toggle('hidden', !inLobby || settingsOpen);
+  $('#settingsPanel').classList.toggle('hidden', !inLobby || !settingsOpen);
   $('#endPanel').classList.add('hidden');
   $('#btnStart').classList.toggle('hidden', !isHost);
-  $('#graceStepper').classList.toggle('hidden', !isHost);
-  $('#graceInfo').classList.toggle('hidden', isHost);
-  $('#graceInfo').textContent = game.grace + ' s (set by the host)';
-  $('#sizeStepper').classList.toggle('hidden', !isHost);
-  $('#sizeInfo').classList.toggle('hidden', isHost);
-  $('#sizeInfo').textContent = game.targetCm + ' cm (set by the host)';
+  const mode = isHost ? $('#mode').value : game.mode, grace = isHost ? cfg.grace : game.grace;
+  $('#btnSettings').textContent = MODE_NAMES[mode] + ' · ' + grace + ' s grace · ⚙ Settings';
+  $('#hostSettings').classList.toggle('hidden', !isHost);
+  $('#hostOnly').classList.toggle('hidden', isHost);
+  $('#hostOnly').textContent = 'Set by the host: ' + MODE_NAMES[mode] + ', ' + grace + ' s grace, ' + game.targetCm + ' cm target.';
   $('#lobbyTitle').textContent = isHost ? 'Lobby' : 'Waiting for host to start';
-  $('#btnSoundCheck').textContent = isHost && online ? '🔊 Sound check (everyone, in turn)' : '🔊 Test my sound';
-  $('#lobbyMode').textContent = MODES[isHost ? $('#mode').value : game.mode] || '';
+  $('#btnSoundCheck').textContent = isHost && online ? '🔊 Sound check' : '🔊 Test sound';
   $('#outScreen').classList.add('hidden'); $('#countdown').classList.add('hidden');
 }
 function beginRound(countdownMs) {
   game.state = 'countdown'; startAt = performance.now() + countdownMs;
   myHealth = 1; myAlive = true; lastPhase = -1; wasWarning = false;
+  settingsOpen = false; $('#settingsPanel').classList.add('hidden');
   $('#lobbyPanel').classList.add('hidden'); $('#endPanel').classList.add('hidden'); $('#outScreen').classList.add('hidden');
   $('#countdown').classList.remove('hidden');
 }
@@ -711,14 +768,16 @@ function renderPlayers() {
 const BULLSEYE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#fff"/>' +
   '<circle cx="50" cy="50" r="42" fill="none" stroke="#000" stroke-width="10"/><circle cx="50" cy="50" r="16" fill="#000"/></svg>';
 let printCm = [6, 9, 18].includes(cfg.markerCm) ? cfg.markerCm : 9;
+let markerReturn = 'home';
 function showMarker() {
+  markerReturn = $('#play').classList.contains('on') ? 'play' : 'home';
   $('#markerSvg').innerHTML = BULLSEYE_SVG;
   show('markerScreen'); keepAwake();
   document.querySelectorAll('#sizes button').forEach(b => b.classList.toggle('sel', +b.dataset.cm === printCm));
   // Phones don't report their physical screen size; ~6.1 CSS px per mm is typical, so this is an estimate.
   const ringPx = $('#markerSvg svg').getBoundingClientRect().width * 0.94;
   const cm = Math.round(ringPx / 6.1 / 5) / 2;
-  $('#screenSize').textContent = 'On this screen the ring is roughly ' + cm + ' cm across. To use this phone as the target, lay it flat at full brightness and set the target size in the lobby to match (measure it with a ruler if you can).';
+  $('#screenSize').textContent = 'Draw it: a thick closed ring about 9 cm across with a solid dot in the middle. Or print it. Or lay this phone flat as the target: the ring here is roughly ' + cm + ' cm, so set that as the target size.';
 }
 
 // True-size printing, following workshop-kit's approach: the page is described in millimetres, the @page
@@ -780,6 +839,7 @@ showStep('markerCm'); showStep('grace');
 function setMode(m) {
   $('#mode').value = m; store.set('mode', m);
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('sel', b.dataset.mode === m));
+  pushSettings();
 }
 document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 setMode(store.get('mode', 'classic'));
@@ -791,17 +851,54 @@ function ask(msg) {
     $('#dialogYes').onclick = () => done(true); $('#dialogNo').onclick = () => done(false);
   });
 }
-$('#btnSound').onclick = () => { snd.hello(myId); buzz(60); $('#btnSound').textContent = 'Heard it? Tap to play again'; };
+$('#btnSound').onclick = () => {
+  snd.hello(myId); buzz(60);
+  $('#btnSound').textContent = '🔊 Play it again';
+  $('#muteHelp').classList.remove('hidden');
+  $('#btnSoundNext').textContent = 'I heard it';
+};
+
+// ----- setup flow: role -> (name) -> sound -> camera -> lobby -----
+let role = null, stepIdx = 0;
+const flow = () => role === 'solo' ? ['stepRole', 'stepSound', 'stepCam'] : ['stepRole', 'stepName', 'stepSound', 'stepCam'];
+function goStep(i) {
+  stepIdx = Math.max(0, i);
+  const id = flow()[stepIdx];
+  document.querySelectorAll('.step').forEach(el => el.classList.toggle('on', el.id === id));
+  document.querySelectorAll('.stepCount').forEach(el => { el.textContent = 'Step ' + stepIdx + ' of ' + (flow().length - 1); });
+  if (id === 'stepCam') startCamera();   // the permission prompt appears here, next to the preview it is for
+}
+function pickRole(r) {
+  role = r; unlockAudio();
+  $('#codeWrap').classList.toggle('hidden', r !== 'join');
+  $('#nameTitle').textContent = r === 'join' ? 'Join a game' : 'Host a game';
+  $('#btnCamNext').textContent = r === 'join' ? 'Join game' : r === 'host' ? 'Open lobby' : 'Continue';
+  goStep(1);
+}
+$('#btnHost').onclick = () => pickRole('host');
+$('#btnJoinRole').onclick = () => pickRole('join');
+$('#btnSolo').onclick = () => pickRole('solo');
+document.querySelectorAll('.step .back').forEach(b => b.onclick = () => goStep(stepIdx - 1));
+$('#btnNameNext').onclick = () => {
+  if (role === 'join' && $('#joinCode').value.trim().length !== 4) { toast('Enter the 4-letter room code'); return; }
+  saveSettings(); goStep(stepIdx + 1);
+};
+$('#joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('#name').focus(); });
+$('#btnSoundNext').onclick = () => goStep(stepIdx + 1);
+$('#btnCamNext').onclick = () => {
+  saveSettings();
+  if (role === 'host') hostGame(true); else if (role === 'join') joinGame($('#joinCode').value); else hostGame(false);
+};
+$('#btnSettings').onclick = () => { settingsOpen = true; renderLobby(); };
+$('#btnSettingsDone').onclick = () => { settingsOpen = false; renderLobby(); };
 $('#btnSoundCheck').onclick = () => {
   if (isHost && online) { const order = Object.keys(players).sort(); broadcast({ t: 'soundcheck', order }); runSoundCheck(order); }
   else { snd.hello(myId); buzz(60); }
 };
 
-$('#btnHost').onclick = () => { saveSettings(); unlockAudio(); hostGame(true); };
-$('#btnSolo').onclick = () => { saveSettings(); unlockAudio(); hostGame(false); };
-$('#btnJoin').onclick = () => { saveSettings(); unlockAudio(); joinGame($('#joinCode').value); };
 $('#btnMarker').onclick = showMarker;
-$('#btnMarkerBack').onclick = () => show('home');
+$('#btnMarkerBack').onclick = () => show(markerReturn);
+$('#btnTarget2').onclick = showMarker;
 $('#btnPrint').onclick = printTarget;
 document.querySelectorAll('#sizes button').forEach(b => b.onclick = () => {
   printCm = +b.dataset.cm;
@@ -828,9 +925,11 @@ $('#btnCalib').onclick = () => {
   toast('Calibrated ✓');
 };
 $('#btnCam').onclick = () => { camError = ''; startCamera(); };
-startCamera(); requestAnimationFrame(loop);   // camera and tracking run from the moment the page opens
+requestAnimationFrame(loop);
+// If the camera was already allowed on an earlier visit, warm it up now so the camera step is instant.
+try { navigator.permissions.query({ name: 'camera' }).then(st => { if (st.state === 'granted') startCamera(); }).catch(() => {}); } catch {}
 const qRoom = new URLSearchParams(location.search).get('room');
-if (qRoom) { $('#joinCode').value = qRoom.toUpperCase(); toast('Enter your name, then tap Join'); }
+if (qRoom) { $('#joinCode').value = qRoom.toUpperCase().slice(0, 4); pickRole('join'); }
 </script>
 </body>
 </html>
