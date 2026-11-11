@@ -41,7 +41,12 @@
   details { margin-top:18px; } summary { color:#bbb; cursor:pointer; padding:16px 0; font-size:18px; }
 
   /* play screen */
-  #video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  #video { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; }
+  #home { background:var(--bg); }
+  #camBox { position:relative; height:230px; border-radius:16px; overflow:hidden; background:#000; margin:14px 0 0; }
+  #homeCam { width:100%; height:100%; display:block; }
+  #camStatus { position:absolute; left:10px; top:10px; }
+  #btnCam { position:absolute; left:20px; right:20px; bottom:16px; width:auto; margin:0; }
   #overlay { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
   #flash { position:absolute; inset:0; background:var(--bad); opacity:0; pointer-events:none; transition:opacity .1s; }
   .hud { position:absolute; left:0; right:0; padding:12px; pointer-events:none; }
@@ -82,7 +87,7 @@
     body { background:#fff; overflow:visible; }
     .screen { display:none !important; }
     #markerScreen { display:block !important; position:static; }
-    #markerScreen .tools, #markerScreen p { display:none; }
+    #markerScreen .tools, #markerScreen p, #video { display:none; }
     /* 19.15cm wide => the ring is 18cm across */
     #markerSvg svg { width:19.15cm; }
   }
@@ -90,10 +95,18 @@
 </head>
 <body>
 
+<video id="video" playsinline muted autoplay></video>
+
 <!-- HOME -->
 <section id="home" class="screen on"><div class="pad">
   <h1>Sightline</h1>
   <p class="sub">Keep the target in view. Block everyone else's. Last camera still seeing it wins.</p>
+  <div id="camBox">
+    <canvas id="homeCam"></canvas>
+    <span id="camStatus" class="pill">Starting camera…</span>
+    <button id="btnCam" class="primary hidden">Allow camera</button>
+  </div>
+  <p class="hint">This is what your phone sees. Point it at the target: a green ring means it has found it, and that is all you need to do in the game.</p>
 
   <div class="soundbox">
     <b>🔊 Sound on, volume up.</b> Your phone beeps when you're losing sight, so the others can hear who is in trouble. On iPhone, flip the silent switch off.
@@ -131,9 +144,6 @@
     <label>Target size: outside diameter of the ring (cm)</label>
     <div class="stepper"><button data-for="markerCm" data-d="-1">−</button><output id="markerCmOut"></output><button data-for="markerCm" data-d="1">+</button></div>
     <input id="markerCm" type="hidden" data-min="4" data-max="60" data-step="1" data-unit=" cm">
-    <label>Grace (seconds of lost sight before you're out)</label>
-    <div class="stepper"><button data-for="grace" data-d="-1">−</button><output id="graceOut"></output><button data-for="grace" data-d="1">+</button></div>
-    <input id="grace" type="hidden" data-min="0.5" data-max="5" data-step="0.25" data-unit=" s">
     <p class="hint">Distance comes from how big the target looks to your camera. For better accuracy, hold the phone exactly 50 cm from the target in the game screen and tap "Calibrate".</p>
     <p class="hint" id="calibInfo"></p>
   </details>
@@ -141,7 +151,6 @@
 
 <!-- PLAY -->
 <section id="play" class="screen">
-  <video id="video" playsinline muted autoplay></video>
   <canvas id="overlay"></canvas>
   <div id="flash"></div>
   <canvas id="dbg" class="hidden" style="position:absolute;right:10px;top:110px;width:38%;border:2px solid #fff;border-radius:6px;pointer-events:none"></canvas>
@@ -169,6 +178,10 @@
     <h2 id="lobbyTitle" style="margin-top:12px">Lobby</h2>
     <div class="hint" id="lobbyMode"></div>
     <div id="lobbyPlayers" style="margin:10px 0"></div>
+    <label style="margin-top:8px">Grace: how long you can lose sight before you're out</label>
+    <div class="stepper" id="graceStepper"><button data-for="grace" data-d="-1">−</button><output id="graceOut"></output><button data-for="grace" data-d="1">+</button></div>
+    <input id="grace" type="hidden" data-min="0.25" data-max="5" data-step="0.25" data-unit=" s">
+    <div class="hint hidden" id="graceInfo" style="font-size:19px;color:var(--fg)"></div>
     <div class="hint">Point your camera at the target. Everyone should show a green lock (80%+) before starting. If yours is low: move closer, add light, or tap Camera view to see what the detector sees.</div>
     <button class="primary" id="btnStart">Start (3-second countdown)</button>
     <button id="btnSoundCheck">🔊 Sound check</button>
@@ -289,13 +302,42 @@ let stream = null;
 // seen: debounced visibility. rate: share of recent frames with a detection (shown in lobby as "lock quality").
 const track = { seen: false, dist: null, sidePx: 0, longSide: 0, ell: null, lastSeen: 0, hist: [], rate: 0, debug: false };
 
+let camError = '';
+// Live preview on the home screen, so players see the camera working (and grant permission) before a game.
+function drawHome() {
+  const c = $('#homeCam'), st = $('#camStatus'), dpr = Math.min(2, window.devicePixelRatio || 1);
+  const W = Math.round(c.clientWidth * dpr), H = Math.round(c.clientHeight * dpr);
+  if (!W) return;
+  if (c.width !== W) c.width = W; if (c.height !== H) c.height = H;
+  $('#btnCam').classList.toggle('hidden', !camError);
+  if (camError || !video.videoWidth) {
+    st.textContent = camError || 'Starting camera…'; st.className = 'pill' + (camError ? ' bad' : '');
+    return;
+  }
+  const ctx = c.getContext('2d'), sc = Math.max(W / video.videoWidth, H / video.videoHeight);
+  const dw = video.videoWidth * sc, dh = video.videoHeight * sc, ox = (W - dw) / 2, oy = (H - dh) / 2;
+  ctx.drawImage(video, ox, oy, dw, dh);
+  if (track.ell) {
+    ctx.lineWidth = 5 * dpr; ctx.strokeStyle = '#35d07f'; ctx.beginPath();
+    ctx.ellipse(ox + track.ell.x * dw, oy + track.ell.y * dh, track.ell.rx * dw + 4 * dpr, track.ell.ry * dh + 4 * dpr, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  st.textContent = track.seen ? 'TARGET ✓  ' + Math.round(track.dist) + ' cm' : 'Looking for target…';
+  st.className = 'pill ' + (track.seen ? 'ok' : '');
+}
 async function startCamera() {
-  if (stream) return;
+  if (stream || startCamera.busy) return;
+  startCamera.busy = true;   // a permission prompt may be open: don't ask twice
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: false,
       video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } });
     video.srcObject = stream; await video.play();
-  } catch (e) { toast('Camera blocked: ' + e.name + '. The page must be served over https.', 6000); }
+    camError = ''; startCamera.busy = false;
+  } catch (e) {
+    startCamera.busy = false;
+    camError = e.name === 'NotAllowedError' ? 'Camera not allowed' : 'No camera (' + e.name + ')';
+    if ($('#play').classList.contains('on')) toast(camError + '. Allow the camera for this site, then reload.', 6000);
+  }
 }
 function stopCamera() { if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; }
 
@@ -514,6 +556,7 @@ function onClientMsg(d) {
   else if (d.t === 'end') showEnd(d);
   else if (d.t === 'lobby') backToLobby(false);
   else if (d.t === 'soundcheck') runSoundCheck(d.order);
+  else if (d.t === 'game') { game = d.game; renderLobby(); }
 }
 
 // ----- sound check: every phone plays its own tone in turn, so a silent phone is obvious -----
@@ -528,6 +571,13 @@ function runSoundCheck(order) {
   setTimeout(() => el.classList.add('hidden'), order.length * gap);
 }
 
+// Host changed a lobby setting: tell everyone straight away so they see the rules before the round.
+function pushSettings() {
+  if (!isHost || game.state !== 'lobby') return;
+  game.grace = cfg.grace; game.mode = $('#mode').value;
+  broadcast({ t: 'game', game });
+}
+
 // ----- shared round flow -----
 function enterPlay() {
   show('play'); keepAwake(); startCamera();
@@ -535,12 +585,14 @@ function enterPlay() {
   $('#lobbyOnline').classList.toggle('hidden', !online);
   if (online && isHost && roomCode) $('#code').textContent = roomCode;
   renderLobby(); renderPlayers();
-  if (!enterPlay.loop) { enterPlay.loop = true; requestAnimationFrame(loop); }
 }
 function renderLobby() {
   $('#lobbyPanel').classList.toggle('hidden', game.state !== 'lobby');
   $('#endPanel').classList.add('hidden');
   $('#btnStart').classList.toggle('hidden', !isHost);
+  $('#graceStepper').classList.toggle('hidden', !isHost);
+  $('#graceInfo').classList.toggle('hidden', isHost);
+  $('#graceInfo').textContent = game.grace + ' s (set by the host)';
   $('#lobbyTitle').textContent = isHost ? 'Lobby' : 'Waiting for host to start';
   $('#btnSoundCheck').textContent = isHost && online ? '🔊 Sound check (everyone, in turn)' : '🔊 Test my sound';
   $('#lobbyMode').textContent = MODES[isHost ? $('#mode').value : game.mode] || '';
@@ -576,6 +628,7 @@ function backToLobby(notify) {
 function loop(ts) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.1, (ts - (lastFrame || ts)) / 1000); lastFrame = ts;
+  if ($('#home').classList.contains('on')) { trackFrame(); drawHome(); return; }
   if (!$('#play').classList.contains('on')) return;
   trackFrame();
 
@@ -658,7 +711,7 @@ function showMarker() {
 function saveSettings() {
   cfg.name = $('#name').value.trim(); store.set('name', cfg.name);
   cfg.markerCm = Math.max(1, +$('#markerCm').value || 18); store.set('markerCm', cfg.markerCm);
-  cfg.grace = Math.min(5, Math.max(0.5, +$('#grace').value || 1.5)); store.set('grace', cfg.grace);
+  cfg.grace = Math.min(5, Math.max(0.25, +$('#grace').value || 1.5)); store.set('grace', cfg.grace);
 }
 function calibInfo() { $('#calibInfo').textContent = cfg.calibrated ? `Calibrated (focal ratio ${cfg.fRatio.toFixed(3)}).` : 'Not calibrated: using a typical phone camera estimate.'; }
 $('#name').value = cfg.name; $('#markerCm').value = cfg.markerCm; $('#grace').value = cfg.grace; calibInfo();
@@ -669,7 +722,7 @@ function showStep(id) { const i = $('#' + id); $('#' + id + 'Out').textContent =
 document.querySelectorAll('.stepper button').forEach(b => b.onclick = () => {
   const i = $('#' + b.dataset.for), st = +i.dataset.step;
   i.value = Math.min(+i.dataset.max, Math.max(+i.dataset.min, Math.round((+i.value + st * +b.dataset.d) / st) * st));
-  showStep(b.dataset.for); saveSettings();
+  showStep(b.dataset.for); saveSettings(); pushSettings();
 });
 showStep('markerCm'); showStep('grace');
 // mode cards
@@ -719,6 +772,8 @@ $('#btnCalib').onclick = () => {
   store.set('fRatio', cfg.fRatio); store.set('calibrated', true); track.dist = null; calibInfo();
   toast('Calibrated ✓');
 };
+$('#btnCam').onclick = () => { camError = ''; startCamera(); };
+startCamera(); requestAnimationFrame(loop);   // camera and tracking run from the moment the page opens
 const qRoom = new URLSearchParams(location.search).get('room');
 if (qRoom) { $('#joinCode').value = qRoom.toUpperCase(); toast('Enter your name, then tap Join'); }
 </script>
