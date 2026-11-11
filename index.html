@@ -781,10 +781,11 @@ function backToLobby(notify) {
 // Before a round, finding or losing the target makes a sound. It shows the phone's sound is on
 // without a separate test, and teaches the link between what the camera sees and what you hear.
 let heardSeen = false;
+// Hysteresis: "found" needs a solid lock (80% of recent frames, the same bar as the green dot in the lobby),
+// and "lost" only plays once the lock has fallen right down to 30%, so a flickering view doesn't chatter.
 function seenSound() {
-  if (track.seen === heardSeen) return;
-  heardSeen = track.seen;
-  if (track.seen) { snd.found(); buzz(40); } else snd.lost();
+  if (!heardSeen && track.rate >= 0.8) { heardSeen = true; snd.found(); buzz(40); }
+  else if (heardSeen && track.rate <= 0.3) { heardSeen = false; snd.lost(); }
 }
 function loop(ts) {
   requestAnimationFrame(loop);
