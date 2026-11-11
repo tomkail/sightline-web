@@ -99,7 +99,7 @@
   /* marker screen */
   #markerScreen { background:#fff; color:#000; }
   #markerScreen .wrap { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
-  #markerSvg svg { height:auto; display:block; max-width:96vw; }
+  #markerSvg img { height:auto; display:block; max-width:96vw; -webkit-touch-callout:default; -webkit-user-select:auto; user-select:auto; }
   #markerScreen #btnCheckSize.need { background:#000; color:#fff; }
   #calScreen { background:#fff; color:#000; }
   #calBar { position:absolute; left:14px; top:max(40px,env(safe-area-inset-top)); height:64px; background:#000; border-radius:4px; }
@@ -310,8 +310,7 @@
   <div id="markerSvg"></div>
   <p id="screenSize" style="max-width:420px;text-align:center;font-size:17px;margin:12px 0 0"></p>
   <button id="btnCheckSize" style="margin-top:12px">Check size with a card</button>
-  <div class="tools"><button id="btnPrint">Print</button><button id="btnSaveImg">Save image</button></div>
-  <div class="tools"><button id="btnShareTarget">Share</button><button id="btnMarkerBack">Back</button></div>
+  <div class="tools"><button id="btnPrint">Print</button><button id="btnMarkerBack">Back</button></div>
 </div></section>
 
 <!-- SCREEN SIZE CHECK -->
@@ -861,9 +860,6 @@ function renderPlayers() {
 }
 
 // ---------- target screen ----------
-// Ring outer diameter is 94 of 100 units.
-const BULLSEYE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#fff"/>' +
-  '<circle cx="50" cy="50" r="42" fill="none" stroke="#000" stroke-width="10"/><circle cx="50" cy="50" r="16" fill="#000"/></svg>';
 const SCREEN_CM = 5;
 const PRINT_CM = 9;     // the standard printout: small enough to carry, two to a page
 // Print the standard size, unless a custom size that fits on the paper is set.
@@ -889,14 +885,20 @@ function screenScale() {
   return { v: 6.1, sure: false, src: 'guess' };
 }
 
-let markerReturn = 'home';
+let markerReturn = 'home', markerUrl = location.pathname;
 function showMarker(keepReturn) {
-  if (keepReturn !== true) markerReturn = $('#play').classList.contains('on') ? 'play' : 'home';
-  $('#markerSvg').innerHTML = BULLSEYE_SVG;
+  if (keepReturn !== true) {
+    markerReturn = $('#play').classList.contains('on') ? 'play' : 'home';
+    markerUrl = location.search.includes('target') ? location.pathname : location.pathname + location.search;
+  }
+  // A real image (not inline SVG), so a long press or right click offers "Save image".
+  if (!$('#markerSvg img')) { const im = new Image(); im.alt = 'Sightline target'; im.src = targetPngUrl(); $('#markerSvg').appendChild(im); }
+  // While the target is showing, the address is a link that opens straight on it, so it can be shared as is.
+  try { history.replaceState(null, '', location.pathname + '?target=1'); } catch {}
   show('markerScreen'); keepAwake();
   const sc = screenScale();
   // the ring is 94% of the drawing's width, so the drawing is SCREEN_CM / 0.94 wide
-  $('#markerSvg svg').style.width = (SCREEN_CM * 10 / 0.94 * sc.v) + 'px';
+  $('#markerSvg img').style.width = (SCREEN_CM * 10 / 0.94 * sc.v) + 'px';
   $('#screenSize').textContent = sc.sure
     ? 'This ring is ' + SCREEN_CM + ' cm across. To use this phone as the target, lay it flat at full brightness and pick "Phone screen" as the target in settings.'
     : 'This ring should be ' + SCREEN_CM + ' cm across, but this phone\'s screen size is a guess. Check it once with a bank card.';
@@ -1035,7 +1037,7 @@ $('#btnSettingsDone').onclick = () => { settingsOpen = false; renderLobby(); };
 $('#btnMarker').onclick = showMarker;
 $('#btnHow').onclick = () => show('howScreen');
 $('#btnHowBack').onclick = () => show('home');
-$('#btnMarkerBack').onclick = () => show(markerReturn);
+$('#btnMarkerBack').onclick = () => { try { history.replaceState(null, '', markerUrl); } catch {} show(markerReturn); };
 $('#btnCheckSize').onclick = showCal;
 holdRepeat($('#calMinus'), () => { calV *= 0.995; renderCal(); });
 holdRepeat($('#calPlus'), () => { calV *= 1.005; renderCal(); });
@@ -1058,58 +1060,15 @@ document.querySelectorAll('#sizeChips button').forEach(b => b.onclick = () => {
 renderSize();
 $('#btnTarget2').onclick = showMarker;
 $('#btnPrint').onclick = printTarget;
-// Save the target as a PNG. On phones the share sheet is the way into Photos ("Save Image"); elsewhere it downloads.
-function targetPng() {
-  return new Promise((res, rej) => {
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement('canvas'); c.width = c.height = 1200;
-      c.getContext('2d').drawImage(img, 0, 0, 1200, 1200);
-      c.toBlob(b => b ? res(b) : rej(new Error('no image')), 'image/png');
-    };
-    img.onerror = rej;
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(BULLSEYE_SVG.replace('<svg ', '<svg width="1200" height="1200" '));
-  });
+// The target drawn as a PNG, ring outer diameter 94% of the width.
+function targetPngUrl() {
+  const N = 1200, u = N / 100, c = document.createElement('canvas'); c.width = c.height = N;
+  const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, N, N);
+  x.lineWidth = 10 * u; x.strokeStyle = '#000'; x.beginPath(); x.arc(N / 2, N / 2, 42 * u, 0, Math.PI * 2); x.stroke();
+  x.fillStyle = '#000'; x.beginPath(); x.arc(N / 2, N / 2, 16 * u, 0, Math.PI * 2); x.fill();
+  return c.toDataURL('image/png');
 }
-$('#btnSaveImg').onclick = async () => {
-  try {
-    const blob = await targetPng(), file = new File([blob], 'sightline-target.png', { type: 'image/png' });
-    const touch = navigator.maxTouchPoints > 0 && matchMedia('(pointer: coarse)').matches;
-    if (touch && navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; }
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name;
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    toast('Target image saved');
-  } catch (e) { if (!e || e.name !== 'AbortError') toast("Couldn't save the image"); }
-};
-// A link that opens straight on this screen, so a friend's phone can be the target with one tap.
-$('#btnShareTarget').onclick = async () => {
-  const url = location.origin + location.pathname + '?target=1';
-  try { if (navigator.share) await navigator.share({ title: 'Sightline target', text: 'Sightline target', url }); else { await navigator.clipboard.writeText(url); toast('Link copied'); } } catch {}
-};
-$('#btnStart').onclick = async () => {
-  if (!isHost) return;
-  // Pre-flight: a bad camera angle should be fixed before the round, not discovered as an unfair "out".
-  const weak = Object.values(players).filter(p => (p.rate || 0) < 0.8).map(p => p.name);
-  if (weak.length && !(await ask(weak.join(', ') + " can't see the target reliably yet."))) return;
-  hostStart();
-};
-$('#btnDebug').onclick = () => { track.debug = !track.debug; $('#dbg').classList.toggle('hidden', !track.debug); };
-$('#btnAgain').onclick = () => backToLobby(true);
-$('#btnLeave').onclick = () => location.href = location.pathname;
-$('#btnShare').onclick = async () => {
-  const url = location.origin + location.pathname + '?room=' + roomCode;
-  try { if (navigator.share) await navigator.share({ title: 'Sightline', text: 'Join my Sightline game: ' + roomCode, url }); else { await navigator.clipboard.writeText(url); toast('Link copied'); } } catch {}
-};
-$('#btnCalib').onclick = () => {
-  if (!track.seen) { toast('Point at the target from 50 cm first'); return; }
-  cfg.fRatio = 50 * track.sidePx / (targetCm() * track.longSide); cfg.calibrated = true;
-  store.set('fRatio', cfg.fRatio); store.set('calibrated', true); track.dist = null; calibInfo();
-  toast('Calibrated ✓');
-};
-$('#btnCam').onclick = () => { camError = ''; startCamera(); };
-requestAnimationFrame(loop);
-// If the camera was already allowed on an earlier visit, warm it up now so the camera step is instant.
-try { navigator.permissions.query({ name: 'camera' }).then(st => { if (st.state === 'granted') startCamera(); }).catch(() => {}); } catch {}
 const qRoom = new URLSearchParams(location.search).get('room');
 if (new URLSearchParams(location.search).has('target')) showMarker();   // shared target link: open on the target
 if (qRoom) { $('#joinCode').value = qRoom.toUpperCase().slice(0, 4); pickRole('join'); goStep(2); }   // code already known: skip to sound
