@@ -55,9 +55,9 @@ Keep these when changing detection or timing.
 - Sound is Web Audio. Vibration is used where it exists (Android; not iPhone Safari).
 - Settings are kept in `localStorage` under the `sl_` prefix.
 
-## Look and feel (direction agreed, not built yet)
+## Look and feel (built into `index.html` on 2026-11-13)
 
-The game still has its plain dark prototype look. A separate design chat has settled the direction below through mockups; none of it is in `index.html` yet.
+The paparazzi look is now in the game: press pass tickets that tear, slab / push / dot / shutter transitions, spiral backdrops, the lobby with googly-eye players (nickname and colour), slam-in round intro, viewfinder brackets, the knocked-out screen, automatic round photos, and an end screen where the made-up star poses and a tabloid front page then prints a worse photo of her. Where a bullet below disagrees with the game, the game is newer: fonts are Fugaz One (logo), Sofia Sans Extra Condensed (headers), Rubik (body); there is no Japanese lettering anywhere; setup goes straight to the lobby, where the camera and sound checks live as chips. Settings, the target screen and the size check are restyled but not yet designed. The name "No Photos!" is still a placeholder.
 
 - **Theme: paparazzi.** Players are photographers jostling for the shot. Made-up celebrities only, never a real person's likeness.
 - **Tone:** loud, colourful, zany, over the top. Touchstones are Jet Set Radio, Rhythm Heaven, Bishi Bashi, WarioWare and Point Blank. WarioWare-style jokes in the copy.

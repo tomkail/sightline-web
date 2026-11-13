@@ -3,149 +3,261 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#111">
-<title>Sightline</title>
+<meta name="theme-color" content="#1a1033">
+<title>No Photos!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fugaz+One&family=Permanent+Marker&family=Rubik:wght@600;700;800&family=Sofia+Sans+Extra+Condensed:ital,wght@1,900&display=swap">
 <style>
-  :root { --ok:#35d07f; --bad:#ff4d4d; --warn:#ffc94d; --bg:#111; --fg:#f4f4f4; --dim:#999; }
+  /* Every screen is laid out on a 300-unit-wide "stage" that is scaled to fit the phone (--s), so sizes below are design units. */
+  :root { --ink:#1a1033; --hf:'Sofia Sans Extra Condensed','Arial Narrow',sans-serif; --s:1; --sh:560px; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
-  body { -webkit-user-select:none; user-select:none; -webkit-text-size-adjust:100%; }
-  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg);
-    font:18px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; overflow:hidden; }
-  .screen { position:fixed; inset:0; display:none; }
-  .screen.on { display:block; }
-  .pad { padding:max(20px,env(safe-area-inset-top)) 20px 20px; max-width:480px; margin:0 auto; height:100%; overflow:auto; }
-  h1 { font-size:44px; margin:10px 0 0; letter-spacing:-1px; }
-  .sub { color:var(--dim); margin:0 0 22px; }
-  label { display:block; font-size:16px; color:#bbb; margin:18px 0 6px; }
-  input,select { width:100%; font:inherit; font-size:20px; padding:14px; min-height:58px; border-radius:12px; border:1px solid #333; background:#1c1c1c; color:var(--fg); }
-  button { font:inherit; font-weight:700; padding:14px; min-height:60px; border-radius:14px; border:0; background:#2e2e2e; color:var(--fg); width:100%; margin-top:12px; }
-  button:active { transform:scale(.97); filter:brightness(1.3); }
-  button.primary { background:var(--fg); color:#111; }
-  button.small { width:auto; padding:10px 18px; min-height:48px; margin:6px 0 0; font-size:17px; }
-  .modes { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .modes button { margin:0; text-align:left; padding:12px 14px; min-height:84px; border:2px solid transparent; font-weight:400; font-size:15px; color:#bbb; line-height:1.25; }
-  .modes button b { display:block; font-size:19px; color:var(--fg); margin-bottom:2px; }
-  .modes button.sel { border-color:var(--fg); background:#3a3a3a; }
-  .stepper { display:flex; gap:10px; align-items:stretch; }
-  .stepper button { margin:0; width:72px; flex:0 0 72px; font-size:30px; padding:0; }
-  .stepper output { flex:1; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:700; background:#1c1c1c; border-radius:12px; }
-  .soundbox { background:#1d2a22; border:1px solid #2f5a41; border-radius:14px; padding:14px; margin:18px 0 6px; }
-  .soundbox button { background:var(--ok); color:#000; margin-top:10px; }
-  #joinCode { text-transform:uppercase; text-align:center; font-size:26px; font-weight:800; letter-spacing:6px; margin-top:12px; }
-  #dialog { position:fixed; inset:0; background:#000c; z-index:20; display:flex; align-items:center; justify-content:center; padding:20px; }
-  #dialog > div { background:#1c1c1c; border-radius:18px; padding:20px; max-width:420px; width:100%; font-size:19px; }
-  .row { display:flex; gap:10px; } .row > * { flex:1; }
-  .hint { font-size:16px; color:#bbb; margin-top:8px; }
-  details { margin-top:18px; } summary { color:#bbb; cursor:pointer; padding:16px 0; font-size:18px; }
-
-  /* play screen */
-  #video { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; }
-  #home { background:var(--bg); }
-  /* setup flow: one step per screen, nothing scrolls */
-  .step { display:none; flex-direction:column; height:100%; max-width:480px; margin:0 auto;
-    padding:max(16px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom)); }
-  .step.on { display:flex; }
-  .stepHead { display:flex; justify-content:space-between; align-items:center; min-height:52px; color:#bbb; }
-  .stepHead .back { width:auto; margin:0; background:none; padding:10px 16px 10px 0; font-size:20px; min-height:52px; }
-  .stepBody { flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; overflow:auto; }
-  .stepBody h2 { font-size:34px; margin:0 0 8px; letter-spacing:-.5px; }
-  .stepBody p { margin:0 0 14px; font-size:19px; color:#ccc; }
-  .stepFoot button { min-height:66px; font-size:21px; }
-  .card { text-align:left; min-height:100px; padding:16px 18px; font-weight:400; font-size:17px; color:#bbb; line-height:1.3; }
-  .card b { display:block; font-size:25px; color:var(--fg); }
-  #btnSound { background:var(--ok); color:#000; min-height:110px; font-size:26px; }
-  #muteHelp { background:#33291a; border:1px solid #6b5327; border-radius:14px; padding:14px; margin-top:16px; font-size:18px; color:var(--fg); }
-  #stepCam .stepBody { justify-content:flex-start; }
-  #settingsPanel { top:max(10px,env(safe-area-inset-top)); bottom:max(10px,env(safe-area-inset-bottom)); max-height:none; z-index:6; background:#111; padding:14px 16px; display:flex; flex-direction:column; justify-content:center; }
-  #settingsPanel.hidden { display:none !important; }
-  #settingsPanel .modes button { min-height:66px; padding:8px 12px; }
-  #settingsPanel label { margin:10px 0 4px; }
-  #settingsPanel .stepper button, #settingsPanel .stepper output { min-height:54px; }
-  #stepCam #camBox { flex:1; height:auto; min-height:160px; margin:6px 0 10px; }
-  #camBox { position:relative; height:230px; border-radius:16px; overflow:hidden; background:#000; margin:14px 0 0; }
-  #homeCam { width:100%; height:100%; display:block; }
-  #camStatus { position:absolute; left:10px; top:10px; }
-  #btnCam { position:absolute; left:20px; right:20px; bottom:16px; width:auto; margin:0; }
-  #overlay { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-  #flash { position:absolute; inset:0; background:var(--bad); opacity:0; pointer-events:none; transition:opacity .1s; }
-  .hud { position:absolute; left:0; right:0; padding:12px; pointer-events:none; }
-  .hud.top { top:0; padding-top:max(12px,env(safe-area-inset-top)); background:linear-gradient(#000c,#0000); }
-  .hud.bottom { bottom:0; padding-bottom:max(12px,env(safe-area-inset-bottom)); background:linear-gradient(#0000,#000c); }
-  .pill { display:inline-block; padding:6px 14px; border-radius:99px; font-weight:800; font-size:18px; background:#000a; }
-  .pill.ok { background:var(--ok); color:#000; } .pill.bad { background:var(--bad); }
-  .bar { height:16px; background:#fff3; border-radius:99px; overflow:hidden; margin-top:8px; }
-  .bar > i { display:block; height:100%; width:100%; background:var(--ok); transition:width .1s linear; }
-  #dist { font-size:36px; font-weight:800; }
-  #band { font-size:22px; font-weight:700; }
-  #band.bad { color:var(--bad); } #band.ok { color:var(--ok); }
-  #nextBand { color:var(--warn); font-size:18px; font-weight:700; }
-  .plist { display:flex; flex-wrap:wrap; gap:6px; }
-  .p { background:#000a; border-radius:10px; padding:6px 10px; font-size:17px; font-weight:600; min-width:96px; }
-  .p.out { opacity:.4; text-decoration:line-through; }
-  .p .bar { height:7px; margin-top:4px; }
-  .panel { position:absolute; left:12px; right:12px; bottom:max(12px,env(safe-area-inset-bottom)); max-width:440px; margin:0 auto;
-    background:#111e; border-radius:18px; padding:18px; pointer-events:auto; max-height:calc(100% - 150px); overflow:auto; z-index:4; }
-  .panel button { margin-top:10px; }
-  #lobbyPlayers > div { font-size:19px; padding:4px 0; }
-  #standings > div { font-size:21px; padding:4px 0; }
-  .panel h2 { margin:0 0 6px; }
-  #code { font-size:52px; font-weight:800; letter-spacing:8px; line-height:1.1; }
-  #countdown { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:140px; font-weight:900; pointer-events:none; text-shadow:0 4px 30px #000; }
-  #outScreen { position:absolute; inset:0; background:#300d; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-size:56px; font-weight:900; pointer-events:none; }
-  #outScreen small { font-size:22px; font-weight:400; color:#ccc; }
+  html,body { margin:0; height:100%; background:var(--ink); color:var(--ink); overflow:hidden;
+    font:700 14px/1.3 Rubik,system-ui,sans-serif; -webkit-user-select:none; user-select:none; -webkit-text-size-adjust:100%; }
   .hidden { display:none !important; }
-  #toast { position:fixed; left:16px; right:16px; bottom:max(24px,env(safe-area-inset-bottom)); background:#333; padding:14px 18px; border-radius:12px; z-index:30; font-size:18px; text-align:center; }
+  #video { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; background:#22223b; }
+  .screen { position:fixed; inset:0; display:none; overflow:hidden; }
+  .screen.on { display:block; }
+  .bg { position:absolute; inset:0; width:100%; height:100%; }
+  .stage { position:absolute; left:50%; top:0; width:300px; height:var(--sh); margin-left:-150px; transform:scale(var(--s)); transform-origin:50% 0;
+    display:flex; flex-direction:column; padding:calc(env(safe-area-inset-top) / var(--s)) 0 calc(env(safe-area-inset-bottom) / var(--s)); }
+  .grow { flex:1 1 0; min-height:0; }
+  .ctr { text-align:center; }
+  .ico { width:1.15em; height:1.15em; flex:none; vertical-align:-.2em; }
 
-  /* marker screen */
-  #markerScreen { background:#fff; color:#000; }
+  /* type */
+  .strap { margin:0 36px; text-align:center; text-wrap:balance; font:700 14.5px/1.25 Rubik,sans-serif; color:#fff; -webkit-text-stroke:3.5px var(--ink); paint-order:stroke fill; }
+  .strap.sm { font-size:12px; -webkit-text-stroke-width:3px; }
+  .tilt { rotate:-3deg; }
+  .hd { margin:0; text-align:center; font:italic 900 40px/1 var(--hf); text-transform:uppercase; letter-spacing:.03em; white-space:nowrap;
+    color:#fff8e7; -webkit-text-stroke:7px var(--ink); paint-order:stroke fill; rotate:-3deg; position:relative; z-index:1; }
+
+  /* press pass ticket */
+  .gb { --shape:polygon(0 0,100% 0,100% calc(50% - 9px),calc(100% - 9px) 50%,100% calc(50% + 9px),100% 100%,0 100%,0 calc(50% + 9px),9px 50%,0 calc(50% - 9px));
+    position:relative; display:block; height:60px; margin:0 24px 15px; cursor:pointer; rotate:-3deg; flex:none; }
+  .gb.torn { --shape:polygon(0 0,calc(100% - 51px) 0,calc(100% - 55px) 12%,calc(100% - 50px) 25%,calc(100% - 55px) 38%,calc(100% - 50px) 50%,calc(100% - 55px) 62%,calc(100% - 50px) 75%,calc(100% - 55px) 88%,calc(100% - 51px) 100%,0 100%,0 calc(50% + 9px),9px 50%,0 calc(50% - 9px)); }
+  .gb.off { filter:saturate(0); opacity:.85; pointer-events:none; }
+  .base,.face,.base i,.fill { position:absolute; inset:0; clip-path:var(--shape); }
+  .base,.face { background:var(--ink); }
+  .base { transform:translateY(7px); }
+  .base i,.fill { inset:3px; }
+  .base i { background:var(--d); }
+  .face { transition:transform .07s; }
+  .gb.down .face { transform:translateY(6px); }
+  .fill { display:flex; align-items:center; gap:10px; padding:0 54px 0 16px; background:var(--f); }
+  .fill.noic { padding-left:20px; }
+  .tx { display:flex; flex-direction:column; gap:4px; white-space:nowrap; }
+  .tx b { font:italic 900 25px/.9 var(--hf); text-transform:uppercase; color:#fff; -webkit-text-stroke:4px var(--ink); paint-order:stroke fill; letter-spacing:.04em; padding-right:4px; }
+  .tx small { font-size:11px; font-weight:700; line-height:1; color:#fff; -webkit-text-stroke:2.5px var(--ink); paint-order:stroke fill; }
+  .tx small:empty { display:none; }
+  .ic { flex:none; width:32px; height:32px; display:grid; place-items:center; font-size:19px; background:#fff; border:3px solid var(--ink); border-radius:6px; }
+  .fill::after,.stub i { content:"PRESS"; position:absolute; right:0; top:0; bottom:0; width:48px; border-left:3px dashed var(--ink);
+    background:linear-gradient(45deg,var(--l) 25%,#fff 0 50%,var(--l) 0 75%,#fff 0) 0 0/16px 16px; display:grid; place-items:center; writing-mode:vertical-rl;
+    font-size:11.5px; font-weight:800; font-style:normal; letter-spacing:.12em; color:var(--ink); -webkit-text-stroke:3px #fff; paint-order:stroke fill; }
+  .gb.torn .fill::after { display:none; }
+  .stub { position:absolute; right:0; top:0; width:55px; height:100%; background:var(--ink); pointer-events:none; transform-origin:20% 50%; z-index:3;
+    clip-path:polygon(4px 0,100% 0,100% calc(50% - 9px),calc(100% - 9px) 50%,100% calc(50% + 9px),100% 100%,4px 100%,0 88%,5px 75%,0 62%,5px 50%,0 38%,5px 25%,0 12%); }
+  .stub i { inset:3px; width:auto; border-left:0; clip-path:polygon(4px 0,100% 0,100% calc(50% - 9px),calc(100% - 9px) 50%,100% calc(50% + 9px),100% 100%,4px 100%,0 88%,5px 75%,0 62%,5px 50%,0 38%,5px 25%,0 12%); }
+  .fk { position:absolute; right:46px; background:var(--ink); pointer-events:none; z-index:4; }
+  .fk i { position:absolute; inset:2px; background:var(--c); }
+  .sl { position:absolute; right:38px; height:3px; background:var(--ink); pointer-events:none; z-index:4; transform-origin:0 50%; }
+
+  /* small skewed button */
+  .mini { position:relative; display:inline-block; margin:0; padding:6px 12px 5px; background:#fff; border:3px solid var(--ink); border-radius:0; box-shadow:3px 4px 0 var(--ink);
+    font:italic 900 20px/1 var(--hf); text-transform:uppercase; letter-spacing:.04em; color:var(--ink); white-space:nowrap; cursor:pointer; transform:skewX(-8deg);
+    appearance:none; -webkit-appearance:none; }
+  .mini:active { transform:skewX(-8deg) translate(3px,4px); box-shadow:none; }
+  .mini.sm { font-size:16px; padding:5px 9px 4px; }
+  .mini.sel { background:#ffe14a; }
+  .mini.go { background:#12b0f2; color:#fff; -webkit-text-stroke:3.5px var(--ink); paint-order:stroke fill; font-size:22px; padding:5px 14px 3px; }
+  .mini:disabled { opacity:.5; pointer-events:none; }
+  .hold::before { content:""; position:absolute; left:0; top:0; bottom:0; width:0; background:#ff4fa3; z-index:-1; }
+  .hold.holding::before { width:100%; transition:width .7s linear; }
+  .ft { display:flex; justify-content:center; gap:14px; padding-bottom:16px; flex:none; }
+  .top { display:flex; justify-content:space-between; align-items:flex-start; padding:12px 14px 0; flex:none; }
+
+  /* overlays and cards */
+  .lay { position:absolute; inset:0; display:none; z-index:30; }
+  .lay.on { display:block; }
+  .dm { position:absolute; inset:0; background:rgba(26,16,51,.62); }
+  .lk { position:relative; margin:14px 28px 18px; background:#fffdf5; border:3px solid var(--ink); box-shadow:5px 6px 0 var(--ink); padding:16px 12px 14px; rotate:-2deg; text-align:center; flex:none; }
+  .lk h4 { margin:0 0 2px; font:400 22px/1.1 'Permanent Marker',cursive; }
+  .lk p { margin:0 0 10px; font-size:12.5px; font-weight:600; line-height:1.3; text-wrap:pretty; }
+  .lk p.bad { color:#b3104d; font-weight:800; }
+  .lk label { display:block; margin:10px 0 6px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; }
+  .lk label:first-child { margin-top:0; }
+  #joinCode,#nm { text-align:center; text-transform:uppercase; background:#fff; color:var(--ink); border:3px solid var(--ink); border-radius:0; outline:none; -webkit-user-select:text; user-select:text; }
+  #joinCode { width:176px; height:64px; margin-bottom:16px; font:italic 900 50px/1 var(--hf); letter-spacing:.18em; }
+  #nm { width:134px; height:40px; font:italic 900 28px/1 var(--hf); letter-spacing:.04em; }
+  #sheet { margin-top:70px; }
+  #sheet .gb { margin:0 8px 16px; }
+  .shake { animation:shk .3s; }
+  @keyframes shk { 25%{transform:translateX(-9px)} 50%{transform:translateX(8px)} 75%{transform:translateX(-5px)} }
+  .stepper { display:flex; gap:10px; align-items:center; justify-content:center; }
+  .stepper output { min-width:92px; font:italic 900 30px/1 var(--hf); }
+  .stepper .mini { width:44px; padding:3px 0 2px; font-size:26px; }
+  .rowm { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .readonly .mini { pointer-events:none; }
+  .readonly .stepper .mini { visibility:hidden; }
+  .readonly .rowm .mini:not(.sel) { opacity:.35; }
+
+  /* polaroid cards: anything shown as a card can be swiped */
+  .deckbox { position:relative; height:312px; flex:none; }
+  .pc { position:absolute; left:32px; top:12px; width:236px; height:290px; padding:11px 11px 0; background:#fffdf5; border:3px solid var(--ink); box-shadow:5px 6px 0 var(--ink);
+    transition:transform .3s cubic-bezier(.2,1.25,.4,1); cursor:grab; touch-action:pan-y; }
+  .pc.drag { transition:none; cursor:grabbing; }
+  .pic { position:relative; height:150px; border:3px solid var(--ink); display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:64px;
+    background:repeating-conic-gradient(from 0deg at 50% 60%,var(--a) 0 15deg,var(--b) 15deg 30deg); }
+  .pic.tall { height:176px; }
+  .pic img,.pic canvas { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; -webkit-user-drag:none; }
+  .pc > b { display:block; margin-top:9px; font:400 20px/1.1 'Permanent Marker',cursive; rotate:-1.5deg; }
+  .pc > small { display:block; margin-top:5px; font-size:12.5px; font-weight:600; line-height:1.3; text-wrap:pretty; }
+  .stamp { position:absolute; right:6px; top:8px; padding:2px 8px; border:3px solid #b3104d; color:#b3104d; background:rgba(255,255,255,.85); font:italic 900 20px/1 var(--hf); text-transform:uppercase; rotate:12deg; display:none; }
+  .tape { position:absolute; left:50%; top:-11px; margin-left:-32px; width:64px; height:18px; background:#ffe9a8; border:2px solid var(--ink); rotate:-3deg; }
+  .tag { position:absolute; right:-4px; top:10px; padding:3px 9px 2px; background:#ffe14a; border:3px solid var(--ink); font:italic 900 19px/1 var(--hf); text-transform:uppercase; rotate:8deg; }
+  .pill { position:absolute; bottom:8px; left:50%; translate:-50% 0; padding:3px 10px; background:#fff; border:3px solid var(--ink); font-size:12px; font-weight:800; white-space:nowrap; line-height:1.3; }
+  .pill.ok { background:#3dff8f; }
+  .dots { display:flex; justify-content:center; gap:9px; margin:6px 0 14px; flex:none; position:relative; z-index:1; }
+  .dots i { width:11px; height:11px; rotate:45deg; background:var(--ink); border:2px solid #fff8e7; }
+  .dots i.on { background:#ffe14a; }
+
+  /* home */
+  #logo { display:block; width:300px; flex:0 1 200px; min-height:150px; overflow:visible; margin-top:16px; }
+
+  /* lobby */
+  .cb { position:relative; margin:10px 28px 0; background:#fffdf5; border:3px solid var(--ink); box-shadow:5px 6px 0 var(--ink); padding:8px 14px 2px; rotate:-2deg; cursor:pointer; flex:none; }
+  .cb:active { translate:3px 4px; box-shadow:2px 2px 0 var(--ink); }
+  .cb small { display:block; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
+  .cb b { display:block; font:italic 900 58px/1 var(--hf); letter-spacing:.12em; }
+  .cb.un b { font-size:46px; letter-spacing:.04em; padding:4px 0 2px; }
+  .cb > i { position:absolute; right:12px; top:50%; margin-top:-17px; width:34px; height:34px; display:grid; place-items:center; font-size:18px; background:#ffe14a; border:3px solid var(--ink); border-radius:6px; }
+  #pk { margin-top:12px; font-size:27px; -webkit-text-stroke-width:5.5px; flex:none; }
+  #plw { display:flex; align-items:flex-start; gap:10px; margin:8px 28px 0; flex:none; }
+  #pl { display:flex; flex-wrap:wrap; row-gap:7px; flex:none; max-width:244px; }
+  .pv { width:61px; text-align:center; }
+  .pv.me { cursor:pointer; }
+  .pv > span { display:block; margin-top:5px; font-size:11px; font-weight:800; line-height:1; color:#fff; -webkit-text-stroke:2.5px var(--ink); paint-order:stroke fill; white-space:nowrap; }
+  .av { position:relative; flex:none; width:46px; height:46px; margin:0 auto; border:3px solid var(--ink); border-radius:12px; display:flex; align-items:center; justify-content:center; gap:2px; box-shadow:2px 3px 0 var(--ink); }
+  .av.s { zoom:.74; } .av.xs { zoom:.5; box-shadow:none; margin:0; } .av.l { zoom:1.4; }
+  .eye { width:16px; height:16px; border-radius:50%; background:#fff; border:2.5px solid var(--ink); position:relative; margin-top:-4px; }
+  .eye i { position:absolute; left:50%; top:50%; width:7px; height:7px; margin:-3.5px; border-radius:50%; background:var(--ink); animation:look 2.8s ease-in-out infinite; }
+  @keyframes look { 0%,100%{transform:translate(-2.5px,1px)} 25%{transform:translate(2.5px,-2px)} 50%{transform:translate(1px,2.5px)} 75%{transform:translate(-2px,-2.5px)} }
+  .av.rdy .eye i { animation:none; }
+  .av.dead { filter:saturate(0) brightness(.75); }
+  .av.dead .eye i { animation:none; width:10px; height:3px; margin:-1.5px -5px; border-radius:0; rotate:45deg; }
+  .av.lost { animation:wob .25s linear infinite; }
+  @keyframes wob { 50%{translate:0 -2px} }
+  .bd { position:absolute; width:19px; height:19px; border-radius:50%; border:2px solid var(--ink); display:grid; place-items:center; font-size:10px; }
+  .pop { animation:pop .35s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes pop { from{transform:scale(0) rotate(-30deg)} }
+  #un { flex:1; padding:9px 10px; background:#fffdf5; border:3px solid var(--ink); box-shadow:3px 4px 0 var(--ink); font-size:11.5px; font-weight:600; line-height:1.3; text-wrap:pretty; rotate:1deg; }
+  #md { position:relative; margin:10px 24px 0; min-height:72px; background:#fffdf5; border:3px solid var(--ink); box-shadow:4px 5px 0 var(--ink); display:flex; align-items:center; gap:10px; padding:0 10px; rotate:1.5deg; cursor:pointer; flex:none; }
+  .mp { flex:none; width:44px; height:52px; background:#fff; border:2.5px solid var(--ink); padding:4px 4px 12px; rotate:-6deg; box-shadow:2px 2px 0 var(--ink); }
+  .mp i { display:grid; place-items:center; width:100%; height:100%; font-size:17px; border:2px solid var(--ink); }
+  .mt { flex:1; min-width:0; }
+  .mt small { display:block; font-size:10.5px; font-weight:700; line-height:1.15; text-wrap:balance; }
+  .mt b { display:block; font:italic 900 27px/1 var(--hf); text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; }
+  .sts { margin:16px 25px 0 22px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; flex:none; }
+  .st { min-width:0; display:flex; align-items:center; justify-content:center; gap:4px; padding:7px 0; background:#fff; border:3px solid var(--ink); box-shadow:3px 4px 0 var(--ink); font-size:10.5px; font-weight:700; line-height:1; white-space:nowrap; cursor:pointer; transform:skewX(-6deg); }
+  .st:active { transform:skewX(-6deg) translate(3px,4px); box-shadow:none; }
+  .st u { flex:none; width:10px; height:10px; border-radius:50%; border:2px solid var(--ink); background:#ffb01f; }
+  .st.ok u { background:#3dff8f; } .st.no u { background:#c9c5d6; } .st.err u { background:#ff2e7e; }
+  #sw { display:grid; grid-template-columns:repeat(4,1fr); gap:11px 0; justify-items:center; }
+  .sw { width:38px; height:38px; border:3px solid var(--ink); border-radius:10px; cursor:pointer; box-shadow:2px 3px 0 var(--ink); }
+  .sw.sel { outline:3px solid #ff2e7e; outline-offset:2px; }
+  .sw.tk { opacity:.22; pointer-events:none; }
+  #camPic { background:radial-gradient(circle at 30% 30%,#5b6b8a,#22223b); }
+  #btnCam { position:absolute; left:50%; top:50%; translate:-50% -50%; }
+
+  /* play */
+  #overlay { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .vg { --h:75%; position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .15s;
+    background:radial-gradient(circle,#ff2e7e 5px,transparent 5.6px) 0 0/14px 14px,radial-gradient(circle,#ff2e7e 5px,transparent 5.6px) 7px 7px/14px 14px;
+    -webkit-mask-image:radial-gradient(ellipse at 50% 42%,transparent var(--h),#000 calc(var(--h) + 30%)); mask-image:radial-gradient(ellipse at 50% 42%,transparent var(--h),#000 calc(var(--h) + 30%)); }
+  .bad .vg { opacity:1; }
+  #hud { pointer-events:none; }
+  #hud .mini { pointer-events:auto; }
+  #rv { display:flex; flex-wrap:wrap; gap:4px; max-width:190px; }
+  .rv { width:44px; text-align:center; }
+  .rv span { display:block; margin-top:3px; font-size:9.5px; font-weight:800; line-height:1; color:#fff; -webkit-text-stroke:2.5px var(--ink); paint-order:stroke fill; white-space:nowrap; }
+  .tp { display:flex; flex-direction:column; align-items:flex-end; gap:7px; margin-left:auto; }
+  .tb { padding:2px 9px 0; background:#fff; border:3px solid var(--ink); box-shadow:2px 3px 0 var(--ink); font:italic 900 24px/1.05 var(--hf); transform:skewX(-8deg); white-space:nowrap; }
+  .tb.y { background:#ffe14a; font-size:15px; padding:3px 7px 2px; }
+  .tb.bad { background:#ff2e7e; color:#fff; }
+  .tb:empty { display:none; }
+  #gz { position:absolute; right:14px; top:38%; width:22px; height:200px; background:#fff; border:3px solid var(--ink); box-shadow:2px 3px 0 var(--ink); }
+  #gzb { position:absolute; left:0; right:0; background:#3dff8f; border-block:3px solid var(--ink); transition:top .5s cubic-bezier(.2,1.2,.4,1),height .5s; }
+  #gzm { position:absolute; left:-14px; width:0; height:0; border:8px solid transparent; border-left:12px solid #ff2e7e; margin-top:-8px; }
+  #bt { text-align:center; padding-bottom:26px; flex:none; }
+  #pil { display:inline-block; padding:4px 12px; background:#3dff8f; border:3px solid var(--ink); box-shadow:2px 3px 0 var(--ink); font-size:13px; font-weight:800; transform:skewX(-8deg); }
+  .bad #pil { background:#ff2e7e; color:#fff; }
+  #gm { position:relative; width:236px; height:20px; margin:12px auto 0; background:#fff; border:3px solid var(--ink); box-shadow:3px 4px 0 var(--ink); transform:skewX(-8deg); overflow:hidden; }
+  #gmf { position:absolute; left:0; top:0; bottom:0; width:100%; background:#3dff8f; border-right:3px solid var(--ink); }
+  #in { position:absolute; inset:0; background:rgba(26,16,51,.6); z-index:10; }
+  .slb { display:inline-block; position:relative; rotate:-6deg; padding:4px 22px 0; border:5px solid var(--ink); box-shadow:6px 8px 0 var(--ink); background:linear-gradient(168deg,var(--a) 54%,var(--b) 54.5%);
+    font:italic 900 96px/1 var(--hf); text-transform:uppercase; white-space:nowrap; color:#fff8e7; -webkit-text-stroke:9px var(--ink); paint-order:stroke fill; }
+  .tab { display:inline-block; position:relative; padding:4px 12px 2px; background:#ffe14a; border:3px solid var(--ink); box-shadow:3px 4px 0 var(--ink); font:italic 900 24px/1 var(--hf); text-transform:uppercase; white-space:nowrap; rotate:-6deg; }
+  .fl { position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:40; }
+  #dbg { position:fixed; right:10px; top:110px; width:38%; border:3px solid var(--ink); z-index:60; pointer-events:none; }
+
+  /* knocked out */
+  #outScreen { background:radial-gradient(circle,#3a2a6b 4px,transparent 4.6px) 0 0/16px 16px,radial-gradient(circle,#3a2a6b 4px,transparent 4.6px) 8px 8px/16px 16px,var(--ink); }
+  .cap { display:inline-block; padding:6px 16px 4px; background:#fff; border:4px solid var(--ink); box-shadow:4px 5px 0 #ff2e7e; font:italic 900 28px/1 var(--hf); text-transform:uppercase; white-space:nowrap; transform:skewX(-8deg); }
+  #ss { display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin-top:8px; min-height:50px; }
+
+  /* end of round */
+  #endScreen { background:#ffc91a; }
+  .sun { position:absolute; inset:-60%; background:repeating-conic-gradient(#ffc91a 0 9deg,#ffdf52 9deg 18deg); animation:spin 40s linear infinite; }
+  @keyframes spin { to{rotate:360deg} }
+  #pose { position:absolute; left:0; right:0; top:50%; height:500px; margin-top:-250px; }
+  #ttl { position:absolute; left:0; right:0; top:34px; font-size:56px; -webkit-text-stroke-width:8px; rotate:-5deg; }
+  #cel { position:absolute; left:52px; top:118px; width:196px; transform-origin:50% 100%; overflow:visible; }
+  .sp { position:absolute; width:24px; height:24px; background:var(--c,#fff); clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%); animation:tw 1.3s ease-in-out infinite; }
+  @keyframes tw { 0%,100%{scale:0;rotate:0deg} 50%{scale:1;rotate:40deg} }
+  .bub { position:absolute; left:22px; right:22px; top:424px; background:#fff; border:3px solid var(--ink); box-shadow:4px 5px 0 var(--ink); padding:8px 12px; font-size:14px; font-weight:700; line-height:1.3; text-wrap:balance; text-align:center; rotate:-2deg; }
+  .bub::before { content:''; position:absolute; left:50%; top:-15px; margin-left:-12px; border:12px solid transparent; border-bottom-color:var(--ink); border-top:0; }
+  .bub::after { content:''; position:absolute; left:50%; top:-9px; margin-left:-9px; border:9px solid transparent; border-bottom-color:#fff; border-top:0; }
+  .np { position:absolute; left:16px; right:19px; top:14px; background:#fffdf5; border:3px solid var(--ink); box-shadow:5px 6px 0 var(--ink); padding:7px 10px 4px; rotate:-2deg; opacity:0; }
+  .mh { display:flex; justify-content:space-between; align-items:baseline; border-bottom:4px double var(--ink); padding-bottom:1px; }
+  .mh b { font:italic 900 25px/1 var(--hf); text-transform:uppercase; letter-spacing:.04em; }
+  .mh small { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+  .hl { margin:5px 0 4px; text-align:center; font:italic 900 50px/.9 var(--hf); text-transform:uppercase; letter-spacing:.01em; white-space:nowrap; }
+  .hl span { display:inline-block; }
+  .fp { position:relative; height:148px; border:3px solid var(--ink); overflow:hidden; background:#ffc91a; }
+  .fp svg { position:absolute; inset:0; width:100%; height:100%; }
+  .fp .sp { width:16px; height:16px; }
+  .cr { display:flex; align-items:center; gap:6px; margin:5px 0 3px; font-size:11px; font-weight:700; white-space:nowrap; }
+  .cr b,.nr b.p { font:italic 900 19px/1 var(--hf); color:#ff2e7e; -webkit-text-stroke:3px var(--ink); paint-order:stroke fill; margin-left:auto; padding:0 3px 0 6px; white-space:nowrap; }
+  .qt { margin:2px 0 1px; text-align:center; font:400 14px/1.15 'Permanent Marker',cursive; text-wrap:balance; }
+  .by { margin:0 0 5px; text-align:center; font-size:9.5px; font-weight:600; text-wrap:balance; }
+  .nr { display:flex; align-items:center; gap:6px; border-top:2px dashed var(--ink); padding:3px 0; font-size:11px; white-space:nowrap; }
+  .nr > i { font:italic 900 21px/1 var(--hf); width:14px; flex:none; }
+  .nr span { font-weight:600; opacity:.8; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+  #eft { position:absolute; left:0; right:0; bottom:16px; display:flex; justify-content:center; align-items:center; gap:12px; opacity:0; }
+
+  /* how to play, target, size check */
+  #howScreen .hd { margin-top:22px; }
+  #markerScreen,#calScreen { background:#fff; color:#000; }
   #markerScreen .wrap { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
   #markerSvg img { height:auto; display:block; max-width:96vw; -webkit-touch-callout:default; -webkit-user-select:auto; user-select:auto; }
-  #markerScreen #btnCheckSize.need { background:#000; color:#fff; }
-  #calScreen { background:#fff; color:#000; }
+  #screenSize { max-width:420px; text-align:center; font-size:15px; font-weight:600; margin:14px 0 0; text-wrap:pretty; }
+  #markerScreen .tools { display:flex; gap:14px; margin-top:16px; flex-wrap:wrap; justify-content:center; }
+  #btnCheckSize.need { background:#ffe14a; }
   #calBar { position:absolute; left:14px; top:max(40px,env(safe-area-inset-top)); height:64px; background:#000; border-radius:4px; }
-  #calUI { position:absolute; left:18px; right:18px; bottom:max(18px,env(safe-area-inset-bottom)); font-size:19px; }
-  #calUI button { background:#eee; color:#000; }
-  #calUI #calDone { background:#000; color:#fff; }
-  .sizeChips { display:flex; gap:10px; margin-top:6px; }
-  .sizeChips button { margin:0; min-height:54px; padding:4px; flex:1; border:2px solid transparent; font-weight:400; font-size:13px; color:#bbb; line-height:1.15; }
-  .sizeChips button b { display:block; font-size:17px; color:var(--fg); }
-  .sizeChips button.sel { border-color:var(--fg); background:#3a3a3a; }
-  #emojiPanel { top:max(10px,env(safe-area-inset-top)); bottom:max(10px,env(safe-area-inset-bottom)); max-height:none; z-index:6; background:#111; padding:16px; display:flex; flex-direction:column; justify-content:center; }
-  #emojiPanel.hidden { display:none !important; }
-  #emojiGrid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin:8px 0; }
-  #emojiGrid button { margin:0; min-height:58px; font-size:32px; padding:0; border:2px solid transparent; }
-  #emojiGrid button.sel { border-color:var(--fg); background:#3a3a3a; }
-  #emojiGrid button:disabled { opacity:.2; }
-  #lobbyPlayers { display:flex; flex-wrap:wrap; gap:8px; }
-  #lobbyPlayers > div.chip { background:#222; border:2px solid transparent; border-radius:12px; padding:4px 10px; font-size:15px; color:#bbb; text-align:center; min-width:74px; }
-  #lobbyPlayers > div.chip.me { border-color:var(--fg); }
-  #lobbyPlayers > div.chip b { display:block; font-size:34px; line-height:1.2; font-weight:400; }
-  .p b { font-size:24px; font-weight:400; }
-  .or { display:flex; align-items:center; gap:12px; color:#888; font-size:16px; margin:16px 0 4px; }
-  .or::before, .or::after { content:''; flex:1; height:1px; background:#3a3a3a; }
-  #markerScreen .tools { display:flex; gap:10px; margin-top:10px; width:100%; max-width:340px; }
-  #markerScreen .tools button { flex:1; padding:12px 8px; }
-  #markerScreen button { background:#eee; color:#000; width:auto; padding:12px 26px; margin:0; }
-  #howScreen { background:var(--bg); }
-  .how { display:flex; flex-direction:column; justify-content:center; height:100%; max-width:480px; margin:0 auto;
-    padding:max(16px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom)); }
-  .how h2 { font-size:34px; margin:0 0 14px; letter-spacing:-.5px; }
-  .how ol { list-style:none; margin:0 0 10px; padding:0; counter-reset:how; }
-  .how li { counter-increment:how; position:relative; padding:0 0 0 52px; margin:0 0 16px; font-size:18px; color:#ccc; line-height:1.3; min-height:40px; }
-  .how li::before { content:counter(how); position:absolute; left:0; top:0; width:40px; height:40px; border-radius:50%; background:#2a2a2a; color:var(--fg); font-size:21px; font-weight:700; display:flex; align-items:center; justify-content:center; }
-  .how li b { display:block; color:var(--fg); font-size:20px; }
-  .how button { min-height:66px; font-size:21px; }
-  /* joined players see the host's settings but cannot change them */
-  .readonly button { pointer-events:none; }
-  .readonly .stepper button { visibility:hidden; }
-  .readonly .modes button:not(.sel), .readonly .sizeChips button:not(.sel) { opacity:.35; }
+  #calUI { position:absolute; left:18px; right:18px; bottom:max(22px,env(safe-area-inset-bottom)); font-size:17px; font-weight:600; text-align:center; }
+  #calUI .rowm { margin-top:14px; }
+  #calUI .mini { font-size:24px; }
+
+  /* transitions */
+  #slab { position:fixed; left:0; top:0; height:100%; background:#ff4fa3; border-left:5px solid var(--ink); border-right:5px solid var(--ink); transform:translateX(-200vw); z-index:60; pointer-events:none; }
+  #ov { position:fixed; inset:0; display:none; z-index:70; pointer-events:none; }
+  #toast { position:fixed; left:50%; top:calc(env(safe-area-inset-top) + 86px * var(--s)); z-index:90; max-width:92vw; padding:.3em .7em .2em; background:#fff; border:3px solid var(--ink); box-shadow:3px 4px 0 var(--ink);
+    font:italic 900 calc(20px * var(--s))/1.05 var(--hf); text-transform:uppercase; text-align:center; text-wrap:balance; width:max-content; max-width:calc(260px * var(--s)); transform:translateX(-50%) skewX(-8deg); pointer-events:none; }
+  #dialog { position:fixed; inset:0; z-index:95; }
   #printSheet { display:none; }
-  .chips { display:flex; gap:10px; margin-top:14px; }
-  .chips button { margin:0; background:#eee; color:#000; border:3px solid transparent; min-width:84px; }
-  .chips button.sel { border-color:#000; }
   @media print {
     html, body { background:#fff; overflow:visible; height:auto; }
-    .screen, #video, #toast, #dialog { display:none !important; }
+    .screen, #video, #toast, #dialog, #slab, #ov, #dbg { display:none !important; }
     #printSheet { display:block; }
     #printSheet svg { display:block; }
     * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
@@ -155,220 +267,206 @@
 <body>
 
 <video id="video" playsinline muted autoplay></video>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <filter id="stk3" x="-25%" y="-15%" width="150%" height="130%"><feMorphology in="SourceAlpha" operator="dilate" radius="4" result="w"/><feFlood flood-color="#fff"/><feComposite in2="w" operator="in" result="W"/><feMorphology in="SourceAlpha" operator="dilate" radius="6.5" result="k"/><feFlood flood-color="#1a1033"/><feComposite in2="k" operator="in" result="K"/><feOffset in="K" dx="4" dy="4" result="S"/><feMerge><feMergeNode in="S"/><feMergeNode in="K"/><feMergeNode in="W"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs></svg>
 
-<!-- HOME: setup flow -->
-<section id="home" class="screen on">
-  <div class="step on" id="stepRole">
-    <div class="stepBody">
-      <h1>Sightline</h1>
-      <p class="sub" style="margin-bottom:10px">Keep the target in view. Block everyone else's. Last camera still seeing it wins.</p>
-      <div class="row">
-        <button class="card" id="btnHost"><b>Host</b>Friends join with your code</button>
-        <button class="card" id="btnJoinRole"><b>Join</b>Enter a friend's code</button>
+<!-- HOME -->
+<section id="home" class="screen on"><canvas class="bg"></canvas>
+  <div class="stage">
+    <svg id="logo" viewBox="0 0 300 200"><g id="LG" transform="rotate(-3 150 100)"></g></svg>
+    <div class="strap tilt">Keep your camera on the star. Block everyone else's.</div>
+    <div class="grow"></div>
+    <div id="hb"></div>
+    <div class="grow"></div>
+    <div class="ft"><button class="mini" id="btnHow">How to play</button><button class="mini" id="btnMarker">The target</button></div>
+  </div>
+  <div class="lay" id="joinLay"><div class="dm" id="joinDim"></div><div class="stage">
+    <div class="lk" id="sheet"><h4>Room code</h4><p id="msg"></p>
+      <input id="joinCode" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done">
+      <div id="jb"></div><button class="mini sm" id="cnl">Cancel</button></div>
+  </div></div>
+</section>
+
+<!-- LOBBY -->
+<section id="lobby" class="screen"><canvas class="bg"></canvas>
+  <div class="stage">
+    <div class="top"><button class="mini sm hold" id="btnLeave">Hold to leave</button><button class="mini sm" id="btnSettings">Settings</button></div>
+    <div class="cb" id="cb"><small id="cl">Room code</small><b id="code">····</b><i id="shr"></i></div>
+    <h3 class="hd" id="pk">The press pack</h3>
+    <div id="plw"><div id="pl"></div><div id="un" class="hidden">Phones aren't linked, so other players won't show here. Agree the mode out loud, then all tap Start together.</div></div>
+    <div class="grow"></div>
+    <div id="md"><span class="mp"><i id="mpi"></i></span><div class="mt"><small>Game mode</small><b id="mn"></b><small id="mdsc"></small></div><button class="mini sm" id="chg">Change</button></div>
+    <div class="sts"><span class="st" id="stC"><u></u><span>Camera</span></span><span class="st" id="stS"><u></u><span>Sound</span></span><span class="st ok" id="stP"><u></u><span>Photos</span></span></div>
+    <div class="grow"></div>
+    <div id="sb"></div>
+  </div>
+  <div class="lay" id="mo"><div class="dm"></div><div class="stage"><div class="grow"></div>
+    <h3 class="hd">Pick a mode</h3><div class="deckbox" id="mcs"></div><div class="dots" id="mdots"></div><div id="pb"></div><div class="grow"></div></div></div>
+  <div class="lay" id="co"><div class="dm"></div><div class="stage"><div class="grow"></div>
+    <h3 class="hd">Camera check</h3><div class="deckbox"><div class="pc" id="cc"><i class="tape"></i>
+      <div class="pic" id="camPic"><canvas id="homeCam"></canvas><span class="pill" id="camStatus">Starting camera…</span><button class="mini sm hidden" id="btnCam">Allow camera</button></div>
+      <b>Point at the target</b><small id="camHelp"></small></div></div><div class="grow"></div><div class="grow"></div></div></div>
+  <div class="lay" id="lo"><div class="dm"></div><div class="stage"><div style="height:44px;flex:none"></div>
+    <h3 class="hd">Your look</h3><div class="lk"><div class="av rdy" id="lkA"><span class="eye"><i></i></span><span class="eye"><i></i></span></div>
+      <div style="display:flex;gap:10px;justify-content:center;align-items:center;margin:14px 0"><input id="nm" maxlength="8" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="Your name"><button class="mini sm" id="dice" aria-label="Random name"></button></div>
+      <div id="sw"></div></div><div id="db"></div></div></div>
+  <div class="lay" id="so"><div class="dm"></div><div class="stage"><div class="grow"></div>
+    <h3 class="hd">Settings</h3>
+    <div class="lk">
+      <p class="hidden" id="hostOnly">Set by the host. Only they can change these.</p>
+      <div id="hostSettings">
+        <label>Grace: time without sight before you're out</label>
+        <div class="stepper"><button class="mini" data-for="grace" data-d="-1">−</button><output id="graceOut"></output><button class="mini" data-for="grace" data-d="1">+</button></div>
+        <input id="grace" type="hidden" data-min="0.25" data-max="5" data-step="0.25" data-unit=" s">
+        <label>Target</label>
+        <div class="rowm" id="sizeChips"><button class="mini sm" data-size="screen">Phone screen</button><button class="mini sm" data-size="print">Printout</button><button class="mini sm" data-size="custom">Custom</button></div>
+        <div class="stepper hidden" id="sizeStepper" style="margin-top:10px"><button class="mini" data-for="markerCm" data-d="-1">−</button><output id="markerCmOut"></output><button class="mini" data-for="markerCm" data-d="1">+</button></div>
+        <input id="markerCm" type="hidden" data-min="3" data-max="60" data-step="0.5" data-unit=" cm">
       </div>
-      <div class="or">or</div>
-      <button class="card" id="btnSolo" style="margin-top:0"><b>Play unsynced</b>No connection: each phone runs on its own</button>
+      <label>This phone</label>
+      <div class="rowm"><button class="mini sm" id="btnCalib">Calibrate at 50 cm</button><button class="mini sm" id="btnDebug">Camera view</button><button class="mini sm" id="btnTarget2">The target</button></div>
+      <p id="calibInfo" style="margin:10px 0 0;font-size:11.5px"></p>
     </div>
-    <div class="stepFoot"><div class="row"><button id="btnHow">How to play</button><button id="btnMarker">The target</button></div></div>
-  </div>
-
-  <div class="step" id="stepName">
-    <div class="stepHead"><button class="back">‹ Back</button><span class="stepCount"></span></div>
-    <div class="stepBody">
-      <h2>Join a game</h2>
-      <label>Room code from the host</label>
-      <input id="joinCode" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done" style="margin-top:0">
-    </div>
-    <div class="stepFoot"><button class="primary" id="btnNameNext">Continue</button></div>
-  </div>
-
-  <div class="step" id="stepSound">
-    <div class="stepHead"><button class="back">‹ Back</button><span class="stepCount"></span></div>
-    <div class="stepBody">
-      <h2>Sound check</h2>
-      <p>Your phone beeps when you're losing sight, so everyone can hear who is in trouble.</p>
-      <button id="btnSound">🔊 Play test sound</button>
-      <div id="muteHelp" class="hidden"><b>Didn't hear it?</b> Your phone is probably muted. Turn the volume up and switch off Silent mode (on iPhone: the side switch, or the bell in Control Centre). Then play it again.</div>
-    </div>
-    <div class="stepFoot"><button class="primary" id="btnSoundNext">Skip</button></div>
-  </div>
-
-  <div class="step" id="stepCam">
-    <div class="stepHead"><button class="back">‹ Back</button><span class="stepCount"></span></div>
-    <div class="stepBody">
-      <h2>Camera check</h2>
-      <div id="camBox">
-        <canvas id="homeCam"></canvas>
-        <span id="camStatus" class="pill">Starting camera…</span>
-        <button id="btnCam" class="primary hidden">Allow camera</button>
-      </div>
-      <p style="margin:0">Point at the target. A green ring and a chime mean your phone has found it.</p>
-    </div>
-    <div class="stepFoot"><button class="primary" id="btnCamNext">Continue</button></div>
-  </div>
+    <div id="setB"></div><div class="grow"></div></div></div>
 </section>
 
 <!-- PLAY -->
 <section id="play" class="screen">
   <canvas id="overlay"></canvas>
-  <div id="flash"></div>
-  <canvas id="dbg" class="hidden" style="position:absolute;right:10px;top:110px;width:38%;border:2px solid #fff;border-radius:6px;pointer-events:none"></canvas>
-
-  <div class="hud top">
-    <div class="row" style="align-items:center">
-      <div style="flex:0 0 auto"><span id="seenPill" class="pill bad">NO TARGET</span></div>
-      <div style="text-align:right"><span id="dist">—</span></div>
-    </div>
-    <div class="bar" id="hpBar"><i id="hp"></i></div>
-    <div class="row" style="margin-top:6px"><div id="band"></div><div id="nextBand" style="text-align:right"></div></div>
+  <div class="vg" id="vg"></div>
+  <div class="stage" id="hud">
+    <div class="top"><div><div id="rv"></div><button class="mini sm hold hidden" id="btnFinish">Hold to finish</button></div>
+      <div class="tp"><span class="tb" id="clk">0:00</span><span class="tb y" id="sh"></span><span class="tb y" id="band"></span><span class="tb y" id="nextBand"></span></div></div>
+    <div id="gz" class="hidden"><div id="gzb"></div><div id="gzm"></div></div>
+    <div class="grow"></div>
+    <div id="bt"><span id="pil">On target</span><div id="gm"><div id="gmf"></div></div></div>
   </div>
+  <div id="in" class="hidden"><div class="stage"><div class="grow"></div><div class="ctr"><div class="slb" id="sl"></div></div><div class="ctr" style="margin-top:14px;height:40px"><div class="tab" id="it"></div></div><div class="grow"></div><div class="grow"></div></div></div>
+  <div class="fl" id="fl"></div>
+</section>
 
-  <div class="hud bottom"><div class="plist" id="plist"></div></div>
+<!-- KNOCKED OUT -->
+<section id="outScreen" class="screen"><div class="stage">
+  <div class="grow"></div>
+  <div class="ctr" style="margin-right:70px"><div class="tab">Knockout!</div></div>
+  <div class="ctr"><div class="slb" style="font-size:124px;--a:#ff2e7e;--b:#5327d9">Out!</div></div>
+  <div class="ctr" style="margin-top:26px"><div class="cap">You lost the star!</div></div>
+  <div class="strap" id="os" style="margin-top:18px;font-size:15px"></div>
+  <div class="grow"></div>
+  <div id="ssw"><div class="strap sm">Still snapping</div><div id="ss"></div></div>
+  <div class="grow"></div>
+  <div class="strap sm" id="of" style="margin-bottom:22px">The round ends when one snapper is left.</div>
+  <div id="ob" class="hidden"></div>
+</div></section>
 
-  <div id="countdown" class="hidden"></div>
-  <div id="outScreen" class="hidden">OUT<small id="outInfo"></small></div>
-
-  <div class="panel" id="lobbyPanel">
-    <div id="lobbyOnline">
-      <div class="hint" style="margin:0">Room code</div>
-      <div class="row" style="align-items:center"><div id="code">····</div><button class="small" id="btnShare" style="flex:0 0 auto">Share link</button></div>
-    </div>
-    <div class="row" style="align-items:center;margin-top:10px">
-      <h2 id="lobbyTitle" style="margin:0">Lobby</h2>
-      <button class="small" id="btnEmoji" style="flex:0 0 auto;margin:0"></button>
-    </div>
-    <div id="lobbyPlayers" style="margin:8px 0"></div>
-    <div class="hint">Point at the target: your phone chimes when it finds it. No chime? Turn the volume up and Silent mode off.</div>
-    <button class="primary" id="btnStart">Start (3-second countdown)</button>
-    <div class="row">
-      <button id="btnSettings"></button>
-      <button id="btnLeave" style="flex:0 0 auto;width:auto;padding:14px 20px">Leave</button>
-    </div>
+<!-- END OF ROUND -->
+<section id="endScreen" class="screen"><div class="sun"></div>
+  <div class="stage">
+    <div id="pose"><h3 class="hd" id="ttl"></h3><svg id="cel" viewBox="-10 -10 140 222"></svg>
+      <i class="sp" style="left:40px;top:150px;--c:#ff2e7e"></i><i class="sp" style="left:236px;top:140px;animation-delay:.3s"></i><i class="sp" style="left:250px;top:260px;animation-delay:.6s;--c:#12b0f2"></i><i class="sp" style="left:22px;top:290px;animation-delay:.9s"></i><i class="sp" style="left:130px;top:108px;animation-delay:1.1s;--c:#12b0f2;width:16px;height:16px"></i><i class="sp" style="left:210px;top:360px;animation-delay:.5s;--c:#ff2e7e;width:16px;height:16px"></i><i class="sp" style="left:196px;top:186px;animation-delay:.15s;width:20px;height:20px"></i>
+      <div class="bub" id="bub"></div></div>
+    <div class="np" id="np"><div class="mh"><b>The Daily Snap</b><small>Late edition · 40p</small></div><div class="hl"><span id="hl"></span></div>
+      <div class="fp" id="fp"><div class="sun"></div><svg id="cel2" preserveAspectRatio="xMidYMid slice"></svg><i class="sp" style="left:30px;top:16px;--c:#ff2e7e"></i><i class="sp" style="left:206px;top:84px;animation-delay:.5s"></i><i class="sp" style="left:44px;top:104px;animation-delay:.9s;--c:#12b0f2"></i></div>
+      <div class="cr" id="cr"></div><div class="qt" id="qt"></div><div class="by" id="by"></div><div id="rk"></div></div>
+    <div id="eft"><button class="mini" id="phB">Round photos</button><button class="mini go" id="btnAgain">Play again</button><span class="strap sm hidden" id="ewait" style="margin:0">Waiting for the host</span></div>
   </div>
-
-  <div class="panel hidden" id="emojiPanel">
-    <h2 style="margin:0">Pick your icon</h2>
-    <div id="emojiGrid"></div>
-    <button id="btnEmojiClose">Cancel</button>
-  </div>
-
-  <div class="panel hidden" id="settingsPanel">
-    <div class="hint hidden" id="hostOnly" style="font-size:18px;color:var(--fg);margin:0 0 8px">Set by the host. Only they can change these.</div>
-    <div id="hostSettings">
-      <div class="modes" id="modes">
-        <button data-mode="classic"><b>Classic</b>Just keep sight</button>
-        <button data-mode="zone"><b>Zones</b>Stay in a moving distance band</button>
-        <button data-mode="retreat"><b>Retreat</b>Minimum distance grows</button>
-        <button data-mode="crowd"><b>Crowd in</b>Maximum distance shrinks</button>
-      </div>
-      <select id="mode" class="hidden">
-        <option value="classic"></option><option value="zone"></option><option value="retreat"></option><option value="crowd"></option>
-      </select>
-      <label style="margin-top:12px">Grace: time without sight before you're out</label>
-      <div class="stepper"><button data-for="grace" data-d="-1">−</button><output id="graceOut"></output><button data-for="grace" data-d="1">+</button></div>
-      <input id="grace" type="hidden" data-min="0.25" data-max="5" data-step="0.25" data-unit=" s">
-      <label style="margin-top:10px">Target</label>
-      <div class="sizeChips" id="sizeChips">
-        <button data-size="screen"><b>Phone screen</b></button><button data-size="print"><b>Printout</b></button><button data-size="custom"><b>Custom</b></button>
-      </div>
-      <div class="stepper hidden" id="sizeStepper" style="margin-top:6px"><button data-for="markerCm" data-d="-1">−</button><output id="markerCmOut"></output><button data-for="markerCm" data-d="1">+</button></div>
-      <input id="markerCm" type="hidden" data-min="3" data-max="60" data-step="0.5" data-unit=" cm">
-    </div>
-    <div class="row">
-      <button id="btnCalib">Calibrate at 50 cm</button>
-      <button id="btnDebug">Camera view</button>
-    </div>
-    <div class="hint hidden" id="calibInfo"></div>
-    <div class="row">
-      <button id="btnTarget2">Target</button>
-      <button class="primary" id="btnSettingsDone">Done</button>
-    </div>
-  </div>
-
-  <div class="panel hidden" id="endPanel">
-    <h2 id="endTitle">Game over</h2>
-    <div id="standings"></div>
-    <button class="primary" id="btnAgain">Back to lobby</button>
-  </div>
+  <div class="lay" id="dk"><div class="dm"></div><div class="stage"><div class="grow"></div>
+    <h3 class="hd">Round photos</h3><div class="deckbox" id="dc"></div><div class="dots" id="dd"></div><div class="grow"></div><div class="grow"></div></div></div>
+  <div class="fl" id="efl"></div>
 </section>
 
 <!-- HOW TO PLAY -->
-<section id="howScreen" class="screen"><div class="how">
-  <h2>How to play</h2>
-  <ol>
-    <li><b>Put the target on a table.</b>Draw it, print it, or show it on a spare phone.</li>
-    <li><b>Point your camera at it.</b>Your phone chimes and shows a green ring when it sees the target.</li>
-    <li><b>Stop the others seeing it.</b>Block their camera, cover the target, move it, stand in the way.</li>
-    <li><b>Lose sight and your phone beeps.</b>Your bar drains until you find the target again. Empty bar: you're out.</li>
-    <li><b>Last phone still seeing it wins.</b></li>
-  </ol>
-  <button class="primary" id="btnHowBack">Got it</button>
+<section id="howScreen" class="screen"><canvas class="bg"></canvas><div class="stage">
+  <div class="grow"></div><h3 class="hd">How to play</h3><div class="deckbox" id="hcs"></div><div class="dots" id="hdots"></div>
+  <div class="grow"></div><div class="ft"><button class="mini" id="btnHowBack">Got it</button></div>
 </div></section>
 
 <!-- TARGET -->
 <section id="markerScreen" class="screen"><div class="wrap">
   <div id="markerSvg"></div>
-  <p id="screenSize" style="max-width:420px;text-align:center;font-size:17px;margin:12px 0 0"></p>
-  <button id="btnCheckSize" style="margin-top:12px">Check size with a card</button>
-  <div class="tools"><button id="btnPrint">Print</button><button id="btnMarkerBack">Back</button></div>
+  <p id="screenSize"></p>
+  <div class="tools"><button class="mini sm" id="btnCheckSize">Check size with a card</button><button class="mini sm" id="btnPrint">Print</button><button class="mini sm sel" id="btnMarkerBack">Back</button></div>
 </div></section>
 
 <!-- SCREEN SIZE CHECK -->
 <section id="calScreen" class="screen">
   <div id="calBar"></div>
   <div id="calUI">
-    <p style="margin:0 0 12px">Hold the <b>short edge</b> of a bank card against the black bar. Tap until the bar is exactly as long as the card (5.4 cm).</p>
-    <div class="row"><button id="calMinus" style="font-size:22px">− Shorter</button><button id="calPlus" style="font-size:22px">+ Longer</button></div>
-    <button id="calDone">Done</button>
+    <p style="margin:0">Hold the <b>short edge</b> of a bank card against the black bar. Tap until the bar is exactly as long as the card (5.4 cm).</p>
+    <div class="rowm"><button class="mini" id="calMinus">− Shorter</button><button class="mini" id="calPlus">+ Longer</button><button class="mini sel" id="calDone">Done</button></div>
   </div>
 </section>
 <div id="printSheet"></div>
 
+<canvas id="dbg" class="hidden"></canvas>
+<div id="slab"></div><div id="ov"></div>
 <div id="toast" class="hidden"></div>
-<div id="dialog" class="hidden"><div>
-  <div id="dialogMsg"></div>
-  <button class="primary" id="dialogNo">Wait</button>
-  <button id="dialogYes">Start anyway</button>
-</div></div>
+<div id="dialog" class="hidden"><div class="dm"></div><div class="stage"><div class="grow"></div>
+  <div class="lk"><p id="dialogMsg" style="font-size:14px"></p><div class="rowm"><button class="mini sel" id="dialogNo">Wait</button><button class="mini" id="dialogYes">Start anyway</button></div></div>
+  <div class="grow"></div><div class="grow"></div></div></div>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 "use strict";
 // ---------- basics ----------
 const $ = s => document.querySelector(s);
-const ROOM_PREFIX = 'sightline-v1-';
+const GAME_NAME = ['No', 'Photos!'];          // working title: the logo draws one word per line
+const TITLE = GAME_NAME.join(' ');
+const ROOM_PREFIX = 'sightline-v2-';
+const INK = '#1a1033';
 const store = {
   get(k, d) { try { const v = localStorage.getItem('sl_' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-  set(k, v) { localStorage.setItem('sl_' + k, JSON.stringify(v)); }
+  set(k, v) { try { localStorage.setItem('sl_' + k, JSON.stringify(v)); } catch {} }
 };
 // fRatio = camera focal length / long side of the image, in pixels.
 // 0.72 ~= a typical 26mm-equivalent phone main camera (about 69 degrees across the long side).
 const cfg = {
-  name: store.get('name', ''), markerCm: store.get('markerCm', 9),
+  name: '', col: '', markerCm: store.get('markerCm', 9), photos: store.get('photos', true),
   grace: store.get('grace', 1.5), fRatio: store.get('fRatio', 0.72), calibrated: store.get('calibrated', false)
 };
-// Players are identified by an emoji instead of a typed name: quick to set and easy to read across a table.
-const EMOJI = ['🦊','🐸','🐙','🦄','🐝','🐢','🦁','🐧','🦉','🐳','🦖','🐌','🦋','🐞','🦀','🐨','🐼','🐯','🐷','🐵','🦆','🦩','🐊','🌵','🍄','🍉','🍩','👻','🤖','👽'];
-function randomEmoji(taken = []) {
-  const free = EMOJI.filter(e => !taken.includes(e));
-  const pool = free.length ? free : EMOJI;
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-cfg.name = store.get('emoji', '') || randomEmoji();
-const MODES = {
-  classic: 'Classic: keep sight of the marker.',
-  zone:    'Zones: stay inside the distance band. It moves every 12 s.',
-  retreat: 'Retreat: the minimum distance grows every second.',
-  crowd:   'Crowd in: the maximum distance shrinks every second.'
-};
+// Players are a nickname and a colour: given at random, changeable in the lobby, and easy to read across a table.
+const NICK = ['Flash', 'Zoom', 'Snaps', 'Lens', 'Blitz', 'Pixel', 'Tripod', 'Shutter', 'Bulb', 'Focus', 'Glare', 'Scoop', 'Zoomer', 'Clicky'];
+const COL = ['#ff4fa3', '#ffc61a', '#12b0f2', '#3dff8f', '#ff7a1a', '#b48cff', '#fff8e7', '#ff5c5c', '#12c7a0', '#ff9de1', '#9be564', '#7a5cff'];
+const pickFree = (all, taken) => { const free = all.filter(x => !taken.includes(x)); const pool = free.length ? free : all; return pool[Math.floor(Math.random() * pool.length)]; };
+cfg.name = store.get('nick', '') || pickFree(NICK, []);
+cfg.col = store.get('col', '') || pickFree(COL, []);
+// key, name, one line for the lobby, a sentence for the mode card, icon, two card colours
+const MODE_LIST = [
+  ['classic', 'Classic', 'Just keep sight', 'Keep the target in view. Lose it for too long and you are out.', 'eye', '#12c7a0', '#4fe0bf'],
+  ['zone', 'Zones', 'Stay in the moving band', 'Stay inside a distance band that moves every 12 seconds.', 'target', '#ffc91a', '#ffdf52'],
+  ['retreat', 'Retreat', 'Minimum distance grows', 'You must keep backing away as the minimum distance grows.', 'back', '#0fa8ee', '#3fc6fa'],
+  ['crowd', 'Crowd in', 'Maximum distance shrinks', 'Everyone gets squeezed closer as the maximum distance shrinks.', 'squeeze', '#ff2e7e', '#ff5c9a']
+];
+const MODE = Object.fromEntries(MODE_LIST.map(m => [m[0], m]));
 function toast(msg, ms = 2500) { const t = $('#toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.add('hidden'), ms); }
-function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
 function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+// Small line icons, drawn here so the game needs no icon font.
+const ICONS = {
+  camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  ticket: '<path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/><path d="M14 7v2m0 2.5v1m0 2.5v2"/>',
+  nowifi: '<path d="M3 9a14 14 0 0 1 18 0M6.5 12.5a9 9 0 0 1 11 0M9.5 16a4.5 4.5 0 0 1 5 0M4 4l16 16"/>',
+  share: '<circle cx="6" cy="12" r="2.5"/><circle cx="17" cy="6" r="2.5"/><circle cx="17" cy="18" r="2.5"/><path d="M8.2 10.8l6.6-3.6M8.2 13.2l6.6 3.6"/>',
+  crown: '<path d="M4 18h16l1-10-5 4-4-7-4 7-5-4z"/>',
+  pencil: '<path d="M5 19l1-4L16 5l3 3L9 18z"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/>',
+  back: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  squeeze: '<path d="M4 4l5 5m0-4v4H5M20 4l-5 5m0-4v4h4M4 20l5-5m0 4v-4H5M20 20l-5-5m0 4v-4h4"/>',
+  volume: '<path d="M4 9.5h3l5-4v13l-5-4H4z"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>',
+  photo: '<rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M3.5 16l5-5 4 4 3-3 5 5"/><circle cx="15" cy="9.5" r="1.2"/>',
+  dice: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 8.5h.01M12 12h.01M15.5 15.5h.01"/>',
+  arrow: '<path d="M5 12h14m-6-6l6 6-6 6"/>',
+  hand: '<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-6.5a1.5 1.5 0 0 1 3 0V11m0-5a1.5 1.5 0 0 1 3 0V12m0-3.5a1.5 1.5 0 0 1 3 0V15c0 3.5-2.5 6-6.5 6S7 19.5 5.5 17l-2-4c-.6-1.4 1.3-2.5 2.3-1.2L8 14"/>'
+};
+const ico = n => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
 
 // ---------- sound / haptics ----------
-// Sounds are deliberately loud: they tell the OTHER players what is happening on your phone.
-// Each player gets their own pitch, so the table can hear whose phone is in trouble.
+// Game sounds are deliberately loud: they tell the OTHER players what is happening on your phone.
+// Each player gets their own pitch, so the table can hear whose phone is in trouble. Button sounds are soft.
 let actx = null;
 function unlockAudio() {
   try {
@@ -389,21 +487,40 @@ function beep(freq = 440, dur = 0.12, vol = 0.6, type = 'square', when = 0, slid
     o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur + 0.02);
   } catch {}
 }
+function noise(dur, f0, f1, vol) {
+  try {
+    unlockAudio();
+    const b = actx.createBuffer(1, Math.ceil(actx.sampleRate * dur), actx.sampleRate), x = b.getChannelData(0);
+    for (let i = 0; i < x.length; i++) x[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / x.length, 1.5);
+    const s = actx.createBufferSource(), fl = actx.createBiquadFilter(), g = actx.createGain();
+    s.buffer = b; fl.type = 'bandpass'; fl.frequency.setValueAtTime(f0, actx.currentTime); fl.frequency.exponentialRampToValueAtTime(f1, actx.currentTime + dur);
+    g.gain.value = vol; s.connect(fl).connect(g).connect(actx.destination); s.start();
+  } catch {}
+}
 const TONES = [523, 659, 784, 988, 1175, 1397, 440, 880];
 function toneOf(id) { const i = Object.keys(players).sort().indexOf(id); return TONES[(i < 0 ? 0 : i) % TONES.length]; }
 const snd = {
   hello: id => { const f = toneOf(id); beep(f, .16, .7); beep(f * 1.5, .3, .7, 'square', .17); },  // sound test
   found: () => { const f = toneOf(myId); beep(f, .1, .6); beep(f * 1.5, .2, .6, 'square', .1); },   // target came into view (before a round)
   lost:  () => { const f = toneOf(myId); beep(f * 1.5, .1, .5); beep(f, .2, .5, 'square', .1); },   // target went out of view (before a round)
-  warn:  () => beep(toneOf(myId), .09, .7),                                                       // losing sight (repeats)
+  warn:  () => beep(toneOf(myId), .09, .7),                                                       // losing sight (repeats, faster as grace runs out)
   safe:  () => beep(toneOf(myId) * 2, .08, .4, 'sine'),                                            // got it back
-  out:   () => beep(420, .9, .9, 'sawtooth', 0, 70),                                               // eliminated
-  tick:  () => beep(440, .1, .5),                                                                  // countdown
+  out:   () => { beep(420, .9, .9, 'sawtooth', 0, 70); noise(.2, 400, 80, .5); },                  // eliminated
+  slam:  () => { beep(110, .22, .5); noise(.08, 900, 300, .35); },                                 // round banner, "Ready?", a rival going out
   go:    () => beep(880, .35, .8),
   zone:  () => { beep(600, .1, .6); beep(600, .1, .6, 'square', .15); },                          // band moved
-  win:   () => [523, 659, 784, 1047].forEach((f, i) => beep(f, i === 3 ? .5 : .14, .8, 'square', i * .15))
+  win:   () => [523, 659, 784, 1047].forEach((f, i) => beep(f, i === 3 ? .5 : .14, .8, 'square', i * .13)),
+  lose:  () => { beep(392, .2, .4, 'triangle'); beep(330, .4, .4, 'triangle', .2); },
+  sparkle: () => [2093, 2637, 3136, 3951].forEach((f, i) => beep(f, .22, .12, 'sine', i * .05)),
+  row:   () => beep(300, .06, .25),
+  // interface
+  rip:   () => noise(.11, 5200, 1400, .14),
+  push:  () => noise(.22, 500, 1800, .05),
+  pop:   () => { beep(520, .08, .1, 'sine'); beep(780, .1, .1, 'sine', .05); },
+  shut:  () => { noise(.04, 1800, 1700, .2); setTimeout(() => noise(.05, 900, 850, .2), 70); },
+  snap:  () => noise(.05, 2400, 1200, .06)
 };
-const buzz = p => navigator.vibrate && navigator.vibrate(p);
+const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch {} };
 let wakeLock = null;
 async function keepAwake() { try { wakeLock = await navigator.wakeLock?.request('screen'); } catch {} }
 
@@ -420,9 +537,9 @@ function bandAt(mode, seed, t) {
 }
 function bandText(b) {
   if (b.min <= 0 && b.max === Infinity) return '';
-  if (b.max === Infinity) return `stay beyond ${b.min} cm`;
-  if (b.min <= 0) return `stay within ${b.max} cm`;
-  return `stay ${b.min}–${b.max} cm`;
+  if (b.max === Infinity) return `Beyond ${b.min} cm`;
+  if (b.min <= 0) return `Within ${b.max} cm`;
+  return `${b.min}–${b.max} cm`;
 }
 
 // ---------- camera + marker tracking ----------
@@ -433,27 +550,41 @@ let stream = null;
 const track = { seen: false, dist: null, sidePx: 0, longSide: 0, ell: null, lastSeen: 0, hist: [], rate: 0, debug: false };
 
 let camError = '';
-// Live preview on the home screen, so players see the camera working (and grant permission) before a game.
-function drawHome() {
-  const c = $('#homeCam'), st = $('#camStatus'), dpr = Math.min(2, window.devicePixelRatio || 1);
-  const W = Math.round(c.clientWidth * dpr), H = Math.round(c.clientHeight * dpr);
+// Viewfinder brackets: four corners with an ink outline.
+function brackets(ctx, x, y, w, h, len, lw, col) {
+  const pts = [[x, y, 1, 1], [x + w, y, -1, 1], [x, y + h, 1, -1], [x + w, y + h, -1, -1]];
+  ctx.lineJoin = 'miter'; ctx.lineCap = 'butt';
+  for (const [stroke, width] of [[INK, lw + 5], [col, lw]]) {
+    ctx.strokeStyle = stroke; ctx.lineWidth = width;
+    const e = (width - lw) / 2;   // the outline pokes past the ends as well
+    for (const [px, py, dx, dy] of pts) {
+      ctx.beginPath(); ctx.moveTo(px + dx * (len + e), py); ctx.lineTo(px, py); ctx.lineTo(px, py + dy * (len + e)); ctx.stroke();
+    }
+  }
+}
+// Live preview inside the lobby's camera check card.
+function drawCamCheck() {
+  const c = $('#homeCam'), st = $('#camStatus'), k = S * Math.min(2, window.devicePixelRatio || 1);
+  const W = Math.round(c.clientWidth * k), H = Math.round(c.clientHeight * k);
   if (!W) return;
   if (c.width !== W) c.width = W; if (c.height !== H) c.height = H;
   $('#btnCam').classList.toggle('hidden', !camError);
+  $('#camHelp').textContent = camError ? 'Allow the camera for this site in your browser, then tap Allow camera or reload.' : "The brackets snap shut and your phone chimes when it finds it. Swipe this card away when you're done.";
+  const ctx = c.getContext('2d');
   if (camError || !video.videoWidth) {
-    st.textContent = camError || 'Starting camera…'; st.className = 'pill' + (camError ? ' bad' : '');
+    ctx.clearRect(0, 0, W, H);
+    st.textContent = camError || 'Starting camera…'; st.className = 'pill';
     return;
   }
-  const ctx = c.getContext('2d'), sc = Math.max(W / video.videoWidth, H / video.videoHeight);
+  const sc = Math.max(W / video.videoWidth, H / video.videoHeight);
   const dw = video.videoWidth * sc, dh = video.videoHeight * sc, ox = (W - dw) / 2, oy = (H - dh) / 2;
   ctx.drawImage(video, ox, oy, dw, dh);
   if (track.ell) {
-    ctx.lineWidth = 5 * dpr; ctx.strokeStyle = '#35d07f'; ctx.beginPath();
-    ctx.ellipse(ox + track.ell.x * dw, oy + track.ell.y * dh, track.ell.rx * dw + 4 * dpr, track.ell.ry * dh + 4 * dpr, 0, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  st.textContent = track.seen ? 'TARGET ✓  ' + Math.round(track.dist) + ' cm' : 'Looking for target…';
-  st.className = 'pill ' + (track.seen ? 'ok' : '');
+    const rw = Math.max(track.ell.rx * dw * 2, 30 * k) + 14 * k, rh = Math.max(track.ell.ry * dh * 2, 30 * k) + 14 * k;
+    brackets(ctx, ox + track.ell.x * dw - rw / 2, oy + track.ell.y * dh - rh / 2, rw, rh, 9 * k, 4 * k, '#3dff8f');
+  } else brackets(ctx, W * .14, H * .12, W * .72, H * .6, 11 * k, 4 * k, '#fff');
+  st.textContent = track.seen ? 'Got it · ' + Math.round(track.dist) + ' cm' : 'Looking for the target';
+  st.className = 'pill' + (track.seen ? ' ok' : '');
 }
 async function startCamera() {
   if (stream || startCamera.busy) return;
@@ -466,7 +597,7 @@ async function startCamera() {
   } catch (e) {
     startCamera.busy = false;
     camError = e.name === 'NotAllowedError' ? 'Camera not allowed' : 'No camera (' + e.name + ')';
-    if ($('#play').classList.contains('on')) toast(camError + '. Allow the camera for this site, then reload.', 6000);
+    if (cur === 'lobby' || cur === 'play') toast(camError, 4000);
   }
 }
 function stopCamera() { if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; }
@@ -581,282 +712,735 @@ function drawDebug(w, h) {
   }
   ctx.putImageData(im, 0, 0);
 }
-function drawOverlay() {
-  const W = overlay.clientWidth, H = overlay.clientHeight;
-  if (overlay.width !== W) overlay.width = W; if (overlay.height !== H) overlay.height = H;
+// Play screen: green brackets hug the target; with no shot they spring wide, turn pink and shake.
+const vfx = { x: 0, y: 0, w: 0, h: 0 };
+function drawOverlay(ts, bad) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1), W = overlay.clientWidth, H = overlay.clientHeight;
+  if (overlay.width !== Math.round(W * dpr)) overlay.width = Math.round(W * dpr);
+  if (overlay.height !== Math.round(H * dpr)) overlay.height = Math.round(H * dpr);
+  octx.setTransform(dpr, 0, 0, dpr, 0, 0);
   octx.clearRect(0, 0, W, H);
-  if (!track.ell || !video.videoWidth) return;
-  const sc = Math.max(W / video.videoWidth, H / video.videoHeight);       // object-fit: cover mapping
-  const dw = video.videoWidth * sc, dh = video.videoHeight * sc, ox = (W - dw) / 2, oy = (H - dh) / 2;
-  octx.lineWidth = 5; octx.strokeStyle = myValid ? '#35d07f' : '#ff4d4d';
-  octx.beginPath();
-  octx.ellipse(ox + track.ell.x * dw, oy + track.ell.y * dh, track.ell.rx * dw + 6, track.ell.ry * dh + 6, 0, 0, Math.PI * 2);
-  octx.stroke();
+  let tx, ty, tw, th;
+  if (track.ell && video.videoWidth) {
+    const sc = Math.max(W / video.videoWidth, H / video.videoHeight);       // object-fit: cover mapping
+    const dw = video.videoWidth * sc, dh = video.videoHeight * sc, ox = (W - dw) / 2, oy = (H - dh) / 2;
+    tw = Math.max(track.ell.rx * dw * 2, 50) + 26 * S; th = Math.max(track.ell.ry * dh * 2, 50) + 26 * S;
+    tx = ox + track.ell.x * dw - tw / 2; ty = oy + track.ell.y * dh - th / 2;
+  } else { tw = W * .74; th = H * .46; tx = (W - tw) / 2; ty = H * .42 - th / 2; }
+  if (!vfx.w) Object.assign(vfx, { x: tx, y: ty, w: tw, h: th });
+  for (const [k, v] of [['x', tx], ['y', ty], ['w', tw], ['h', th]]) vfx[k] += (v - vfx[k]) * .35;
+  const shake = bad ? Math.sin(ts / 19) * 3 : 0;
+  brackets(octx, vfx.x + shake, vfx.y - shake * .6, vfx.w, vfx.h, 24 * S, 6 * S, bad || !track.seen ? '#ff2e7e' : '#3dff8f');
 }
+
+// ---------- layout: the stage scale ----------
+let S = 1, SH = 560;
+function fitStage(force) {
+  // A phone keyboard shrinks the window; keep the layout as it was while someone is typing.
+  if (!force && document.activeElement && document.activeElement.tagName === 'INPUT') return;
+  S = Math.min(innerWidth / 300, innerHeight / 520); SH = innerHeight / S;
+  document.documentElement.style.setProperty('--s', S);
+  document.documentElement.style.setProperty('--sh', SH + 'px');
+  BGS.forEach(b => b.size());
+}
+// Shrinks one-line text until it fits (headlines and banners vary in length).
+function fit(el, max) {
+  el.style.fontSize = '';
+  const fs = parseFloat(getComputedStyle(el).fontSize), w = el.offsetWidth;
+  if (w > max) el.style.fontSize = (fs * max / w * .97) + 'px';
+}
+
+// ---------- backdrops: a slow spiral, with halftone dots eating in from the bottom ----------
+const PAL = { mint: ['#12c7a0', '#4fe0bf', '#12a5f0'], violet: ['#5327d9', '#6a3df2', '#16c0ff'], pool: ['#0fa8ee', '#3fc6fa', '#6a4bff'], pink: ['#ff2e7e', '#ff5c9a', '#ff9a1f'], flash: ['#ffc91a', '#ffdf52', '#ff7a1a'] };
+const FS = `precision highp float;uniform vec2 R,O;uniform float T,S;uniform vec3 C1,C2,CG;
+void main(){vec2 px=gl_FragCoord.xy,uv=px/R;vec2 c=px-O*R;float rl=length(c),rn=rl/(592.*S);float v=fract((atan(c.y,c.x)+rn*2.4)*12./6.2832+T*.05);float k=(abs(v-.5)-.25)*max(rl,1.)*6.2832/12.;
+float gf=uv.y*.5;vec3 base=mix(C1,CG,gf),rc=clamp(mix(C2,CG+(C2-C1),gf),0.,1.),col=mix(base,rc,smoothstep(-.75,.75,k));
+float s=clamp(1.-uv.y/.6,0.,1.),cs=26.*S;vec2 p=(px-vec2(.6,1.)*T*12.*S)/cs;float m=9.;vec2 b=floor(p);
+for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 q=b+vec2(float(i),float(j));vec2 ctr=q+.5;ctr.x+=.5*mod(q.y,2.);m=min(m,length(p-ctr));}
+float rr=.95*s*.85,aw=1.3/cs;float al=(rr<.002?0.:1.-smoothstep(rr-aw,rr+aw,m))*mix(1.,smoothstep(0.,1.,s),.25);gl_FragColor=vec4(mix(col,base,al),1.);}`;
+const BGS = [];
+function mkBg(id, pal, focusY) {   // focusY: where the spiral's centre sits, in stage units from the top
+  const scr = $('#' + id), cv = scr.querySelector('.bg');
+  scr.style.background = PAL[pal][0];
+  let gl = null; try { gl = cv.getContext('webgl', { antialias: false, alpha: false }); } catch {}
+  if (!gl) return;
+  const hx = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); return o; }, pr = gl.createProgram();
+  gl.attachShader(pr, sh(gl.VERTEX_SHADER, 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}')); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(pr);
+  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { cv.remove(); return; }
+  gl.useProgram(pr);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const U = n => gl.getUniformLocation(pr, n);
+  ['C1', 'C2', 'CG'].forEach((n, i) => gl.uniform3fv(U(n), hx(PAL[pal][i])));
+  BGS.push({
+    size() {
+      const q = Math.min(1.5, window.devicePixelRatio || 1);   // a little under full resolution keeps weak phones smooth
+      cv.width = Math.round(innerWidth * q); cv.height = Math.round(innerHeight * q);
+      gl.viewport(0, 0, cv.width, cv.height);
+      gl.uniform2f(U('R'), cv.width, cv.height); gl.uniform1f(U('S'), S * q);
+      gl.uniform2f(U('O'), .5, 1 - Math.min(.5, focusY * S / innerHeight));
+    },
+    draw(t) { if (!scr.classList.contains('on')) return; gl.uniform1f(U('T'), t / 1000); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+  });
+}
+let lastBg = 0;
+function drawBackdrops(ts) { if (ts - lastBg < 30) return; lastBg = ts; BGS.forEach(b => b.draw(ts)); }
+
+// ---------- press pass tickets ----------
+// A ticket is pressed down into its edge; on release the stub is torn off and its action runs.
+const PK = ['#ff2e7e', '#ff76aa', '#b3104d'], BL = ['#12b0f2', '#6ad3ff', '#0a70a6'], YL = ['#ffc61a', '#ffe169', '#b98600'];
+const tk = (id, t, s, ic, c) => `<div class="gb" id="${id}" role="button" tabindex="0" style="--f:${c[0]};--l:${c[1]};--d:${c[2]}"><span class="base"><i></i></span><span class="face"><span class="fill${ic ? '' : ' noic'}">${ic ? `<span class="ic">${ico(ic)}</span>` : ''}<span class="tx"><b>${t}</b><small>${s}</small></span></span></span></div>`;
+function setTk(id, t, s) { const b = $('#' + id); if (t != null) b.querySelector('b').textContent = t; if (s != null) b.querySelector('small').textContent = s; fitTk(b); }
+// A title or subtitle that is too long for its ticket is shrunk to fit, never clipped by the stub.
+function fitTk(b) {
+  const room = b.querySelector('.fill').clientWidth - 72 - (b.querySelector('.ic') ? 42 : 4);
+  if (room > 0) b.querySelectorAll('.tx b,.tx small').forEach(el => fit(el, room));
+}
+// A torn ticket is made whole again the moment its screen or sheet is hidden.
+function mend() { document.querySelectorAll('.gb').forEach(b => { b.classList.remove('torn', 'down'); b.querySelectorAll('.stub,.fk,.sl').forEach(x => x.remove()); fitTk(b); }); }
+const SCRAP = ['polygon(0 20%,100% 0,70% 100%)', 'polygon(10% 0,100% 30%,80% 100%,0 70%)', 'polygon(50% 0,100% 100%,0 80%)', 'polygon(0 0,100% 15%,60% 100%,15% 75%)'];
+function scraps(b) {
+  const R = Math.random, cs = [b.style.getPropertyValue('--f'), b.style.getPropertyValue('--l'), '#fff', '#fff'];
+  for (let i = 0; i < 13; i++) {
+    const f = document.createElement('span'), s = 9 + R() * 8, sh = SCRAP[i % 4];
+    f.className = 'fk'; f.style.cssText = `width:${s}px;height:${s}px;top:${R() * 50}px;clip-path:${sh}`; f.innerHTML = `<i style="clip-path:${sh};--c:${cs[i % 4]}"></i>`; b.appendChild(f);
+    const vx = (i % 4 === 0 ? -1 : 1) * (18 + R() * 80), up = -(16 + R() * 46), dn = 60 + R() * 70, r = (R() - .5) * 900;
+    f.animate([{ transform: 'none', opacity: 1, easing: 'cubic-bezier(.1,.7,.3,1)' }, { transform: `translate(${vx * .55}px,${up}px) rotate(${r * .45}deg)`, opacity: 1, offset: .32, easing: 'cubic-bezier(.5,0,.9,.6)' },
+      { transform: `translate(${vx * .9}px,${dn * .55}px) rotate(${r * .8}deg)`, opacity: 1, offset: .75 }, { transform: `translate(${vx}px,${dn}px) rotate(${r}deg)`, opacity: 0 }], { duration: 560 + R() * 320 }).onfinish = () => f.remove();
+  }
+  for (let i = 0; i < 4; i++) {
+    const l = document.createElement('span'); l.className = 'sl'; l.style.cssText = `top:${6 + i * 15}px;width:${14 + R() * 14}px;rotate:${(i - 1.5) * -9}deg`; b.appendChild(l);
+    l.animate([{ transform: 'translateX(0) scaleX(.3)', opacity: 1 }, { transform: 'translateX(46px) scaleX(1)', opacity: 0 }], { duration: 200, easing: 'ease-out' }).onfinish = () => l.remove();
+  }
+}
+function tear(b) {
+  b.animate([{ transform: 'none', easing: 'ease-in' }, { transform: 'scaleX(1.045)', offset: .17 }, { transform: 'translateX(-11px) rotate(-1.5deg)', offset: .19, easing: 'ease-out' },
+    { transform: 'translateX(5px) rotate(.8deg)', offset: .5 }, { transform: 'translateX(-2px)', offset: .76 }, { transform: 'none' }], { duration: 420 });
+  setTimeout(() => {
+    b.classList.add('torn'); buzz([8, 20, 30]); snd.rip();
+    const s = document.createElement('span'); s.className = 'stub'; s.appendChild(document.createElement('i')).textContent = 'PRESS'; b.appendChild(s);
+    s.animate([{ transform: 'none', opacity: 1, easing: 'cubic-bezier(.05,.9,.2,1)' }, { transform: 'translate(58px,-14px) rotate(16deg)', opacity: 1, offset: .25, easing: 'ease-in' },
+      { transform: 'translate(120px,-6px) rotate(34deg)', opacity: 1, offset: .6 }, { transform: 'translate(210px,50px) rotate(75deg)', opacity: 0 }], { duration: 520 }).onfinish = () => s.remove();
+    scraps(b);
+  }, 70);
+}
+// check() may veto the tear (and say why); fn runs 190 ms after release, while the stub is still flying.
+function bind(id, fn, check) {
+  const b = $('#' + id);
+  b.onpointerdown = e => { b.classList.add('down'); try { b.setPointerCapture(e.pointerId); } catch {} };
+  b.onpointermove = e => { if (!b.hasPointerCapture(e.pointerId)) return; const r = b.getBoundingClientRect(); b.classList.toggle('down', e.clientX > r.left - 14 && e.clientX < r.right + 14 && e.clientY > r.top - 14 && e.clientY < r.bottom + 14); };
+  b.onpointercancel = () => b.classList.remove('down');
+  b.onpointerup = () => {
+    if (!b.classList.contains('down')) return;       // slid off: cancelled
+    b.classList.remove('down');
+    if (b.classList.contains('torn') || b.classList.contains('off')) return;
+    if (check && !check()) return;
+    tear(b); setTimeout(fn, 190);
+  };
+}
+// Hold to confirm, for actions that would hurt if tapped by accident.
+function holdBtn(b, fn) {
+  let t;
+  const off = () => { clearTimeout(t); b.classList.remove('holding'); };
+  b.onpointerdown = () => { b.classList.add('holding'); t = setTimeout(() => { off(); buzz(40); fn(); }, 700); };
+  b.onpointerup = b.onpointerleave = b.onpointercancel = off;
+}
+
+// ---------- screens and transitions ----------
+// Fast, for going somewhere else: 'slab' (diagonal wipe) and 'push'. Slow: 'dots' (a new phase) and 'iris' (round start and end).
+let cur = 'home', busy = false, queued = null;
+function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); cur = id; mend(); }
+const EASE = 'cubic-bezier(.7,0,.2,1)';
+function go(to, T = 'slab', dir = 1, mid) {
+  if (busy) { queued = [to, T, dir, mid]; return; }
+  if (to === cur) { mid && mid(); return; }
+  busy = true;
+  const a = $('#' + cur), b = $('#' + to), ov = $('#ov'), W = innerWidth, H = innerHeight;
+  cur = to;
+  let sw = false, fin = false;
+  const swap = () => { if (sw) return; sw = true; b.classList.add('on'); a.classList.remove('on'); a.style.zIndex = b.style.zIndex = ''; mend(); mid && mid(); };
+  const done = () => { if (fin) return; fin = true; swap(); busy = false; ov.style.display = 'none'; ov.style.background = ''; ov.style.clipPath = ''; if (queued) { const q = queued; queued = null; go(...q); } };
+  const ramp = (ms, f) => { const t0 = performance.now(); (function st(t) { const u = Math.min(Math.max(0, t - t0) / ms, 1); if (u >= .5) swap(); f(u); if (u < 1) requestAnimationFrame(st); else done(); })(t0); setTimeout(done, ms + 300); };
+  if (T === 'slab' || T === 'push') { snd.push(); b.classList.add('on'); b.style.zIndex = 2; a.style.zIndex = 1; }
+  if (T === 'slab') {
+    const k = H * .1014, bw = Math.max(70, W * .3), e0 = dir > 0 ? W + k + bw / 2 : -k - bw / 2, e1 = dir > 0 ? -k - bw / 2 : W + k + bw / 2;
+    const Rt = e => `polygon(${e + k}px 0px,${W + 900}px 0px,${W + 900}px ${H}px,${e - k}px ${H}px)`, Lf = e => `polygon(-900px 0px,${e + k}px 0px,${e - k}px ${H}px,-900px ${H}px)`;
+    const PB = dir > 0 ? Rt : Lf, PA = dir > 0 ? Lf : Rt, o = { duration: 340, easing: EASE }, sl = $('#slab');
+    sl.style.width = bw + 'px';
+    a.animate([{ clipPath: PA(e0) }, { clipPath: PA(e1) }], o); b.animate([{ clipPath: PB(e0) }, { clipPath: PB(e1) }], o).onfinish = done;
+    sl.animate([{ transform: `translateX(${e0 - bw / 2}px) skewX(-11.46deg)` }, { transform: `translateX(${e1 - bw / 2}px) skewX(-11.46deg)` }], o);
+    setTimeout(done, 640);
+  } else if (T === 'push') {
+    a.animate([{ transform: 'none' }, { transform: `translateX(${-dir * W}px)` }], { duration: 300, easing: EASE });
+    b.animate([{ transform: `translateX(${dir * W}px)` }, { transform: 'none' }], { duration: 300, easing: EASE }).onfinish = done;
+    setTimeout(done, 600);
+  } else if (T === 'dots') {
+    snd.push(); ov.style.display = 'block';
+    const cell = Math.round(28 * Math.max(1, S));
+    ramp(440, u => { const r = (1 - Math.abs(1 - 2 * u)) * cell * .56, g = `radial-gradient(circle,${INK} ${r}px,transparent ${r + .8}px)`; ov.style.background = `${g} 0 0/${cell}px ${cell}px,${g} ${cell / 2}px ${cell / 2}px/${cell}px ${cell}px`; });
+  } else {
+    snd.shut(); ov.style.display = 'block'; ov.style.background = INK;
+    const R0 = Math.hypot(W, H) * .6;
+    ramp(520, u => { const r = Math.abs(1 - 2 * u) * R0; let p = []; for (let i = 0; i <= 6; i++) { const an = i * Math.PI / 3 + u * 2.2; p.push((W / 2 + r * Math.cos(an)).toFixed(1) + 'px ' + (H / 2 + r * Math.sin(an)).toFixed(1) + 'px'); }
+      ov.style.clipPath = `polygon(evenodd,0 0,${W}px 0,${W}px ${H}px,0 ${H}px,0 0,${p.join(',')})`; });
+  }
+}
+// ---------- polaroid decks: drag a card sideways to flick through ----------
+function deck(cards, tilt, onLay, onPast) {
+  let i = 0;
+  const lay = () => {
+    cards.forEach((c, j) => { const k = j - i; c.classList.remove('drag');
+      c.style.transform = k < 0 ? 'translate(-340px,0) rotate(-18deg)' : k === 0 ? 'rotate(' + tilt[j % tilt.length] + 'deg)' : k === 1 ? 'translate(9px,12px) rotate(5deg) scale(.96)' : 'translate(-9px,22px) rotate(-6deg) scale(.92)';
+      c.style.zIndex = k < 0 ? 200 : 100 - j; c.style.pointerEvents = k ? 'none' : 'auto'; });
+    onLay && onLay(i);
+  };
+  cards.forEach(c => {
+    let sx = 0, dx = 0, pd = false, mv = false;
+    c.addEventListener('pointerdown', e => { pd = true; mv = false; sx = e.clientX; dx = 0; });
+    c.addEventListener('pointermove', e => { if (!pd) return; dx = (e.clientX - sx) / S;
+      if (!mv && Math.abs(dx) > 8) { mv = true; try { c.setPointerCapture(e.pointerId); } catch {} c.classList.add('drag'); }
+      if (mv) c.style.transform = 'translate(' + dx + 'px,0) rotate(' + (tilt[i % tilt.length] + dx / 14) + 'deg)'; });
+    const end = () => { if (!pd) return; pd = false; if (!mv) return;
+      if (Math.abs(dx) > 55) { buzz(8); snd.push();
+        if (dx < 0 && i < cards.length - 1) i++; else if (dx > 0 && i > 0) i--;
+        else if (onPast) { c.classList.remove('drag'); c.style.transform = 'translate(' + (dx < 0 ? -340 : 340) + 'px,0) rotate(' + (dx < 0 ? -18 : 18) + 'deg)'; setTimeout(onPast, 170); return; } }
+      lay(); };
+    c.addEventListener('pointerup', end); c.addEventListener('pointercancel', end);
+  });
+  lay();
+  return { set: n => { i = n; lay(); }, get: () => i };
+}
+const dotsHtml = (n, i) => Array.from({ length: n }, (_, j) => '<i class="' + (j === i ? 'on' : '') + '"></i>').join('');
+function closeLays() { document.querySelectorAll('.lay').forEach(l => l.classList.remove('on')); camOpen = false; mend(); }
 
 // ---------- game state ----------
 // Every phone runs its own tracking. The host owns the roster, start signal, eliminations and winner.
-let isHost = false, online = false, peer = null, hostConn = null, myId = 'host', roomCode = '';
+// Unsynced games have no host connection at all: each phone is its own "host" and players start together by hand.
+let isHost = false, online = false, peer = null, hostConn = null, myId = 'host', roomCode = '', codeReady = false;
 const conns = new Map();
-let players = {};           // id -> {name, alive, health, seen, dist, outAt}
-let game = { state: 'lobby', mode: 'classic', seed: 1, grace: 1.5, targetCm: 0 };
-let t0 = 0, startAt = 0, myHealth = 1, myAlive = true, myValid = false, lastFrame = 0, lastSend = 0, lastPhase = -1, wasWarning = false;
+let players = {};           // id -> {name, col, alive, health, seen, dist, outAt}
+let game = { state: 'lobby', mode: 'classic', seed: 1, grace: 1.5, targetCm: 0, photos: true, round: 0 };
+// Hosting remembers the mode you last hosted. Unsynced always starts on Classic, so every phone at the table starts out the same.
+let hostMode = 'classic';
+let t0 = 0, startAt = 0, myHealth = 1, myAlive = true, myValid = false, lastFrame = 0, lastSend = 0, lastPhase = -1, wasWarning = false, pulseAt = 0, introPhase = -1;
 
 function me() { return players[myId]; }
 function isGuest() { return online && !isHost; }   // joined someone else's game: the host's settings apply
+function alone() { return Object.keys(players).length < 2; }
 function targetCm() { return (!isHost && online && game.targetCm) || cfg.markerCm; }
 function resetPlayersForRound() { for (const p of Object.values(players)) Object.assign(p, { alive: true, health: 1, outAt: null }); }
+function newPlayer(name, col) { return { name, col, alive: game.state === 'lobby', health: 1, seen: false, dist: null, rate: 0 }; }
 
 // ----- host side -----
 function hostGame(withSync) {
-  isHost = true; online = withSync; myId = 'host';
-  players = { host: { name: cfg.name, alive: true, health: 1, seen: false, dist: null } };
-  game = { state: 'lobby', mode: $('#mode').value, seed: 1, grace: cfg.grace, targetCm: cfg.markerCm };
-  enterPlay();
+  isHost = true; online = withSync; myId = 'host'; roomCode = ''; codeReady = false;
+  hostMode = withSync ? (MODE[store.get('mode', 'classic')] ? store.get('mode', 'classic') : 'classic') : 'classic';
+  game = { state: 'lobby', mode: hostMode, seed: 1, grace: cfg.grace, targetCm: cfg.markerCm, photos: cfg.photos, round: 0 };
+  players = { host: newPlayer(cfg.name, cfg.col) };
+  enterLobby();
   if (!withSync) return;
   if (!window.Peer) { toast('Sync library failed to load.'); return; }
   const tryCode = () => {
     roomCode = Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.random() * 24 | 0]).join('');
-    $('#code').textContent = '····';
-    peer = new Peer(ROOM_PREFIX + roomCode);
-    peer.on('open', () => { $('#code').textContent = roomCode; });
-    peer.on('error', e => { if (e.type === 'unavailable-id') { peer.destroy(); tryCode(); } else toast('Sync error: ' + e.type); });
-    peer.on('connection', c => {
+    const p = peer = new Peer(ROOM_PREFIX + roomCode);
+    p.on('open', () => { if (peer !== p) return; codeReady = true; renderLobby(); });
+    p.on('error', e => { if (peer !== p) return; if (e.type === 'unavailable-id') { p.destroy(); tryCode(); } else toast('Sync error: ' + e.type); });
+    p.on('connection', c => {
       c.on('open', () => conns.set(c.peer, c));
       c.on('data', d => onHostMsg(c.peer, d));
-      c.on('close', () => { conns.delete(c.peer); delete players[c.peer]; broadcastRoster(); checkEnd(); });
+      c.on('close', () => { if (peer !== p) return; conns.delete(c.peer); delete players[c.peer]; broadcastRoster(); checkEnd(); });
     });
   };
   tryCode();
 }
 function onHostMsg(id, d) {
   if (d.t === 'hello') {
-    players[id] = { name: freeName(d.name, id), alive: game.state === 'lobby', health: 1, seen: false, dist: null };
+    players[id] = newPlayer(freeName(d.name, id), freeCol(d.col, id));
     send(conns.get(id), { t: 'welcome', game });
-    broadcastRoster();
+    broadcastRoster(); snd.pop();
   } else if (d.t === 'name' && players[id]) {
     players[id].name = freeName(d.name, id, players[id].name);
+    players[id].col = freeCol(d.col, id, players[id].col);
     broadcastRoster();
   } else if (d.t === 'state' && players[id]) {
     const p = players[id];
     p.seen = !!d.seen; p.dist = d.dist; p.health = d.health; p.rate = d.rate;
     if (p.alive && d.alive === false && game.state === 'playing') { p.alive = false; p.outAt = Date.now() - t0; announceOut(id); checkEnd(); }
+  } else if (d.t === 'photo' && players[id]) {   // pass a round photo on to everyone else
+    const msg = { t: 'photo', d: d.d, at: d.at, name: players[id].name, col: players[id].col };
+    for (const [pid, c] of conns) if (pid !== id) send(c, msg);
+    addPhoto(msg);
   }
 }
-// The host keeps icons unique: a clash gets the fallback, or a random free icon.
+// The host keeps names and colours unique: a clash gets the fallback, or a random free one.
+function others(id, key) { return Object.entries(players).filter(([k]) => k !== id).map(([, pl]) => pl[key]); }
 function freeName(wanted, id, fallback) {
-  const taken = Object.entries(players).filter(([k]) => k !== id).map(([, pl]) => pl.name);
-  const nm = String(wanted || '').slice(0, 8);
-  if (nm && !taken.includes(nm)) return nm;
-  return fallback || randomEmoji(taken);
+  const taken = others(id, 'name').map(n => n.toLowerCase()), nm = String(wanted || '').trim().slice(0, 8);
+  if (nm && !taken.includes(nm.toLowerCase())) return nm;
+  return fallback || pickFree(NICK, others(id, 'name'));
 }
-function setEmoji(e) {
-  store.set('emoji', e); cfg.name = e;
-  if (isHost) { if (me()) me().name = freeName(e, myId, me().name); broadcastRoster(); }
-  else send(hostConn, { t: 'name', name: e });
+function freeCol(wanted, id, fallback) {
+  const taken = others(id, 'col');
+  if (COL.includes(wanted) && !taken.includes(wanted)) return wanted;
+  return fallback || pickFree(COL, taken);
+}
+function setLook(name, col) {
+  cfg.name = name; cfg.col = col; store.set('nick', name); store.set('col', col);
+  if (isHost) { const p = me(); if (p) { p.name = freeName(name, myId, p.name); p.col = freeCol(col, myId, p.col); } broadcastRoster(); }
+  else send(hostConn, { t: 'name', name, col });
 }
 function send(c, msg) { try { c && c.open && c.send(msg); } catch {} }
 function broadcast(msg) { for (const c of conns.values()) send(c, msg); }
 function broadcastRoster() { broadcast({ t: 'roster', players }); renderPlayers(); }
-function announceOut(id) { broadcast({ t: 'out', id, name: players[id].name }); if (id !== myId) toast(players[id].name + ' is out!'); renderPlayers(); }
+function announceOut(id) { broadcast({ t: 'out', id, name: players[id].name }); if (id !== myId) rivalOut(players[id].name); renderPlayers(); }
+function rivalOut(name) { toast(name + ' is out!'); if (cur === 'play') { snd.slam(); buzz([60, 60, 60]); } }
 
 function hostStart() {
-  game.mode = $('#mode').value; game.seed = (Math.random() * 1e9) | 0; game.grace = cfg.grace; game.targetCm = cfg.markerCm;
+  game.mode = hostMode; game.seed = (Math.random() * 1e9) | 0; game.grace = cfg.grace; game.targetCm = cfg.markerCm; game.photos = cfg.photos;
+  game.round = (game.round || 0) + 1;
   resetPlayersForRound();
-  broadcast({ t: 'start', game, countdownMs: 3000 });
+  broadcast({ t: 'start', game, countdownMs: INTRO_MS });
   broadcastRoster();
-  beginRound(3000);
+  beginRound(INTRO_MS);
 }
 function checkEnd() {
   if (!isHost || game.state !== 'playing') return;
   const ids = Object.keys(players), alive = ids.filter(i => players[i].alive);
   const done = ids.length >= 2 ? alive.length <= 1 : alive.length === 0;
   if (!done) return;
-  const standings = ids.map(i => ({ id: i, name: players[i].name, outAt: players[i].alive ? null : players[i].outAt }))
+  const standings = ids.map(i => ({ id: i, name: players[i].name, col: players[i].col, outAt: players[i].alive ? null : players[i].outAt }))
     .sort((a, b) => (b.outAt ?? Infinity) - (a.outAt ?? Infinity));
   const msg = { t: 'end', standings, winner: alive[0] || null, solo: ids.length < 2 };
   broadcast(msg); showEnd(msg);
 }
 
 // ----- client side -----
+function joinFail(why) { const m = $('#msg'); m.textContent = why; m.classList.add('bad'); joining = false; mend(); buzz([30, 40, 30]); }
+let joining = false;
 function joinGame(code) {
-  if (!window.Peer) { toast('Sync library failed to load.'); return; }
-  code = code.toUpperCase().trim();
-  if (code.length !== 4) { toast('Enter the 4-letter room code'); return; }
-  isHost = false; online = true; roomCode = code;
+  if (!window.Peer) { joinFail('Sync library failed to load.'); return; }
+  joining = true; isHost = false; online = true; roomCode = code; codeReady = true;
   if (peer) { try { peer.destroy(); } catch {} }
-  toast('Connecting…');
-  peer = new Peer();
-  peer.on('error', e => toast('Sync error: ' + e.type + (e.type === 'peer-unavailable' ? ' (wrong code?)' : '')));
-  peer.on('open', id => {
+  $('#msg').textContent = 'Connecting…'; $('#msg').classList.remove('bad');
+  const p = peer = new Peer();
+  p.on('error', e => { if (peer !== p) return; if (joining) joinFail(e.type === 'peer-unavailable' ? 'No game with that code' : 'Sync error: ' + e.type); else toast('Sync error: ' + e.type); });
+  p.on('open', id => {
+    if (peer !== p) return;
     myId = id;
-    hostConn = peer.connect(ROOM_PREFIX + code, { reliable: true });
-    hostConn.on('open', () => { send(hostConn, { t: 'hello', name: cfg.name }); enterPlay(); });
-    hostConn.on('data', onClientMsg);
-    hostConn.on('close', () => { toast('Lost connection to host', 5000); });
+    const hc = hostConn = p.connect(ROOM_PREFIX + code, { reliable: true });
+    hc.on('open', () => { joining = false; players = {}; game.state = 'lobby'; send(hc, { t: 'hello', name: cfg.name, col: cfg.col }); enterLobby(); });
+    hc.on('data', onClientMsg);
+    hc.on('close', () => { if (hostConn !== hc) return; toast('Lost connection to the host', 5000); leaveGame(); });
   });
 }
 function onClientMsg(d) {
   if (d.t === 'welcome') { game = d.game; renderLobby(); }
-  else if (d.t === 'roster') { players = d.players; if (me() && me().name !== cfg.name) { cfg.name = me().name; renderLobby(); } renderPlayers(); }
+  else if (d.t === 'roster') { players = d.players; const p = me(); if (p) { cfg.name = p.name; cfg.col = p.col; } renderPlayers(); }
   else if (d.t === 'start') { game = d.game; resetPlayersForRound(); beginRound(d.countdownMs); }
-  else if (d.t === 'out') { if (d.id !== myId) toast(d.name + ' is out!'); }
+  else if (d.t === 'out') { if (d.id !== myId) rivalOut(d.name); }
   else if (d.t === 'end') showEnd(d);
   else if (d.t === 'lobby') backToLobby(false);
   else if (d.t === 'game') { game = d.game; renderLobby(); }
+  else if (d.t === 'photo') addPhoto(d);
+}
+function leaveGame() {
+  const p = peer; peer = null; hostConn = null; conns.clear(); joining = false;
+  try { p && p.destroy(); } catch {}
+  players = {}; online = false; isHost = false; game.state = 'lobby'; roomCode = '';
+  stopCamera(); Object.assign(track, { seen: false, ell: null, hist: [], rate: 0, dist: null }); heardSeen = false;
+  if (track.debug) { track.debug = false; $('#dbg').classList.add('hidden'); }
+  try { history.replaceState(null, '', location.pathname); } catch {}
+  closeLays(); go('home', 'slab', -1);
 }
 
 // Host changed a lobby setting: tell everyone straight away so they see the rules before the round.
 function pushSettings() {
-  if (!isHost || game.state !== 'lobby' || !$('#play').classList.contains('on')) return;
-  game.grace = cfg.grace; game.mode = $('#mode').value; game.targetCm = cfg.markerCm;
+  if (!isHost || game.state !== 'lobby' || cur !== 'lobby') return;
+  game.grace = cfg.grace; game.mode = hostMode; game.targetCm = cfg.markerCm; game.photos = cfg.photos;
   broadcast({ t: 'game', game });
   renderLobby();
 }
 
-// ----- shared round flow -----
-function enterPlay() {
-  show('play'); keepAwake(); startCamera();
-  game.state = 'lobby';
-  $('#lobbyOnline').classList.toggle('hidden', !online);
-  if (online && isHost && roomCode) $('#code').textContent = roomCode;
-  renderLobby(); renderPlayers();
+// ----- lobby -----
+function enterLobby() {
+  keepAwake(); startCamera();
+  game.state = 'lobby'; sigL = '';
+  closeLays(); renderLobby(); renderPlayers();
+  go('lobby', 'slab', 1);
 }
-const MODE_NAMES = { classic: 'Classic', zone: 'Zones', retreat: 'Retreat', crowd: 'Crowd in' };
-let settingsOpen = false, emojiOpen = false;
+let soundOk = false;
 function renderLobby() {
-  const inLobby = game.state === 'lobby';
-  if (!inLobby) settingsOpen = emojiOpen = false;
-  $('#lobbyPanel').classList.toggle('hidden', !inLobby || settingsOpen || emojiOpen);
-  $('#emojiPanel').classList.toggle('hidden', !inLobby || !emojiOpen);
-  $('#btnEmoji').classList.toggle('hidden', !online);
-  $('#btnEmoji').textContent = cfg.name + '  Change';
-  $('#settingsPanel').classList.toggle('hidden', !inLobby || !settingsOpen);
-  $('#endPanel').classList.add('hidden');
-  $('#btnStart').classList.toggle('hidden', !isHost);
-  const mode = isHost ? $('#mode').value : game.mode, grace = isHost ? cfg.grace : game.grace;
-  $('#btnSettings').textContent = '⚙ ' + MODE_NAMES[mode] + ' · ' + grace + ' s';
-  $('#hostSettings').classList.toggle('readonly', isGuest());
-  $('#hostOnly').classList.toggle('hidden', !isGuest());
-  if (isGuest()) {   // show the host's values on the same controls, locked
-    document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('sel', b.dataset.mode === game.mode));
+  const un = !online, host = !isGuest(), m = MODE[host ? hostMode : game.mode] || MODE.classic, n = Object.keys(players).length;
+  $('#cb').classList.toggle('un', un);
+  $('#cl').textContent = un ? 'No connection' : 'Room code · tap to share';
+  $('#code').textContent = un ? 'Unsynced' : codeReady ? roomCode : '····';
+  $('#shr').classList.toggle('hidden', un);
+  $('#un').classList.toggle('hidden', !un);
+  $('#pk').textContent = un ? 'Just this phone' : 'The press pack · ' + n;
+  $('#mn').textContent = m[1]; $('#mdsc').textContent = m[2]; $('#mpi').innerHTML = ico(m[4]); $('#mpi').style.background = m[5];
+  $('#chg').classList.toggle('hidden', !host);
+  const photos = host ? cfg.photos : game.photos;
+  $('#stP').classList.toggle('ok', !!photos); $('#stP').classList.toggle('no', !photos);
+  $('#stS').classList.toggle('ok', soundOk);
+  const ready = Object.values(players).filter(p => (p.rate || 0) >= 0.8).length, st = $('#tSt');
+  st.classList.toggle('off', !host);
+  setTk('tSt', host ? 'Start round' : 'Waiting for host',
+    un ? 'Everyone taps together' : host ? (n < 2 ? 'Or wait for friends to join' : ready + ' of ' + n + ' can see the target') : ((players.host && players.host.name) || 'The host') + ' starts the round');
+  // settings sheet: joined players see the host's values on the same controls, locked
+  $('#hostSettings').classList.toggle('readonly', !host);
+  $('#hostOnly').classList.toggle('hidden', host);
+  if (!host) {
     $('#graceOut').textContent = game.grace + ' s';
     const sel = game.targetCm === SCREEN_CM ? 'screen' : game.targetCm === PRINT_CM ? 'print' : 'custom';
     document.querySelectorAll('#sizeChips button').forEach(b => b.classList.toggle('sel', b.dataset.size === sel));
     $('#sizeStepper').classList.toggle('hidden', sel !== 'custom');
     $('#markerCmOut').textContent = game.targetCm + ' cm';
-  }
-  $('#lobbyTitle').textContent = !online ? 'Unsynced game' : isHost ? 'Lobby' : 'Waiting for host';
-  $('#outScreen').classList.add('hidden'); $('#countdown').classList.add('hidden');
+  } else { showStep('grace'); showStep('markerCm'); renderSize(); }
 }
+function camChip() {
+  const c = $('#stC'), ok = track.rate >= 0.8;
+  c.classList.toggle('ok', ok); c.classList.toggle('err', !!camError && !ok);
+}
+
+// ----- round flow -----
+// Intro: shutter closes on the lobby and opens on the camera, then "Round N" -> "Ready?" -> "Go!". The round starts on "Go!".
+const INTRO_MS = 2500;
 function beginRound(countdownMs) {
   game.state = 'countdown'; startAt = performance.now() + countdownMs;
-  myHealth = 1; myAlive = true; lastPhase = -1; wasWarning = false;
-  settingsOpen = emojiOpen = false; $('#settingsPanel').classList.add('hidden'); $('#emojiPanel').classList.add('hidden');
-  $('#lobbyPanel').classList.add('hidden'); $('#endPanel').classList.add('hidden'); $('#outScreen').classList.add('hidden');
-  $('#countdown').classList.remove('hidden');
+  myHealth = 1; myAlive = true; lastPhase = -1; wasWarning = false; introPhase = 0; pulseAt = 0;
+  myPhotos = []; roundPhotos = []; shots = 0; nextShot = 0; sigR = '';
+  closeLays();
+  $('#in').classList.remove('hidden'); $('#sl').style.visibility = 'hidden'; $('#it').style.visibility = 'hidden';
+  $('#btnFinish').classList.toggle('hidden', !alone());
+  $('#sh').innerHTML = game.photos ? ico('photo') + ' 0' : '';
+  vfx.w = 0;
+  renderPlayers(); paintHud(0, { min: 0, max: Infinity }, true);
+  go('play', 'iris', 1);
 }
+function slam(txt, a, b) {
+  const s = $('#sl'); s.textContent = txt; s.style.setProperty('--a', a); s.style.setProperty('--b', b); s.style.visibility = '';
+  fit(s, 268);
+  s.animate([{ scale: 2.6, opacity: 0 }, { scale: .92, opacity: 1, offset: .6 }, { scale: 1, opacity: 1 }], { duration: 240, easing: 'ease-out' });
+}
+function flash(o, id = 'fl') { $('#' + id).animate([{ opacity: o }, { opacity: 0 }], { duration: 260 }); }
+function showOut(t) {
+  const n = Object.keys(players).length, place = Object.values(players).filter(p => p.alive).length + 1, solo = alone();
+  $('#os').textContent = solo ? 'You lasted ' + fmt(t) : ordinal(Math.min(place, n)) + ' of ' + n + ' · lasted ' + fmt(t);
+  $('#ssw').classList.toggle('hidden', solo); $('#of').classList.toggle('hidden', solo); $('#ob').classList.toggle('hidden', !solo);
+  sigO = ''; renderPlayers();
+  go('outScreen', 'dots');
+}
+const ordinal = n => n + (['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10] || 'th');
 function showEnd(d) {
   game.state = 'ended';
-  $('#countdown').classList.add('hidden'); $('#outScreen').classList.add('hidden'); $('#flash').style.opacity = 0;
-  const fmt = ms => ms == null ? 'survived' : (ms / 1000).toFixed(1) + ' s';
-  if (d.solo) $('#endTitle').textContent = 'You lasted ' + fmt(d.standings[0]?.outAt);
-  else {
-    const w = d.standings[0];
-    $('#endTitle').textContent = d.winner ? (d.winner === myId ? 'You win! 🏆' : w.name + ' wins!') : 'Nobody survived';
-    if (d.winner === myId) snd.win();
-  }
-  $('#standings').innerHTML = d.standings.map((s, i) => `<div>${i + 1}. ${esc(s.name)} <span class="hint">${fmt(s.outAt)}</span></div>`).join('');
-  $('#btnAgain').classList.toggle('hidden', !isHost);
-  $('#endPanel').classList.remove('hidden');
+  $('#in').classList.add('hidden');
+  if (d.solo) return;                       // played alone: the knocked-out screen already offers another go
+  if (game.photos) sharePhotos();
+  go('endScreen', 'iris', 1, () => runEnd(d));
 }
 function backToLobby(notify) {
-  game.state = 'lobby'; resetPlayersForRound(); myAlive = true; myHealth = 1;
+  game.state = 'lobby'; resetPlayersForRound(); myAlive = true; myHealth = 1; heardSeen = false; sigL = '';
   if (notify) { broadcast({ t: 'lobby' }); broadcastRoster(); }
-  renderLobby(); renderPlayers();
+  stopEnd(); closeLays(); renderLobby(); renderPlayers();
+  go('lobby', 'slab', -1);
+}
+
+// ----- round photos: taken automatically during play, swapped between the phones when the round ends -----
+let myPhotos = [], roundPhotos = [], shots = 0, nextShot = 0;
+const snapC = document.createElement('canvas');
+function snap(t) {
+  if (!game.photos || !video.videoWidth) return;
+  const w = 428, h = 352, sc = Math.max(w / video.videoWidth, h / video.videoHeight);   // centre crop, the shape of a polaroid picture
+  snapC.width = w; snapC.height = h;
+  try {
+    snapC.getContext('2d').drawImage(video, (w - video.videoWidth * sc) / 2, (h - video.videoHeight * sc) / 2, video.videoWidth * sc, video.videoHeight * sc);
+    myPhotos.push({ d: snapC.toDataURL('image/jpeg', .6), at: t });
+  } catch { return; }
+  if (myPhotos.length > 6) myPhotos.splice(1 + Math.floor(Math.random() * 4), 1);   // keep the first and the latest, thin the middle
+  shots++; $('#sh').innerHTML = ico('photo') + ' ' + shots;
+  $('#sh').animate([{ scale: 1.5 }, { scale: 1 }], { duration: 260, easing: 'cubic-bezier(.2,1.6,.4,1)' });
+  flash(.15); snd.snap();
+}
+function addPhoto(p) { if (roundPhotos.length < 24) roundPhotos.push(p); endButtons(); }
+function sharePhotos() {
+  myPhotos.forEach(p => roundPhotos.push({ d: p.d, at: p.at, name: cfg.name, col: cfg.col, mine: true }));
+  // send the last one (usually the shove that ended it) and two others
+  const pick = myPhotos.slice(-1).concat(myPhotos.slice(0, -1).sort(() => Math.random() - .5).slice(0, 2));
+  for (const p of pick) {
+    if (isHost) broadcast({ t: 'photo', d: p.d, at: p.at, name: cfg.name, col: cfg.col });
+    else send(hostConn, { t: 'photo', d: p.d, at: p.at });
+  }
+}
+async function saveImage(dataUrl, name) {
+  try {
+    const blob = await (await fetch(dataUrl)).blob(), file = new File([blob], name, { type: blob.type });
+    const touch = navigator.maxTouchPoints > 0 && matchMedia('(pointer: coarse)').matches;
+    if (touch && navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast('Photo saved');
+  } catch (e) { if (!e || e.name !== 'AbortError') toast("Couldn't save the photo"); }
 }
 
 // ---------- main loop ----------
 // Before a round, finding or losing the target makes a sound. It shows the phone's sound is on
 // without a separate test, and teaches the link between what the camera sees and what you hear.
-let heardSeen = false;
-// Hysteresis: "found" needs a solid lock (80% of recent frames, the same bar as the green dot in the lobby),
+let heardSeen = false, camOpen = false;
+// Hysteresis: "found" needs a solid lock (80% of recent frames, the same bar as the green tick in the lobby),
 // and "lost" only plays once the lock has fallen right down to 30%, so a flickering view doesn't chatter.
 function seenSound() {
-  if (!heardSeen && track.rate >= 0.8) { heardSeen = true; snd.found(); buzz(40); }
+  if (!heardSeen && track.rate >= 0.8) { heardSeen = true; snd.found(); buzz(40); soundOk = true; $('#stS').classList.add('ok'); }
   else if (heardSeen && track.rate <= 0.3) { heardSeen = false; snd.lost(); }
+}
+function publish(ts) {
+  const p = me(); if (p) Object.assign(p, { seen: track.seen, dist: track.dist, health: myHealth, rate: track.rate });
+  if (ts - lastSend < 100) return;
+  lastSend = ts;   // ~10x a second
+  if (!isHost && hostConn) send(hostConn, { t: 'state', seen: track.seen, dist: track.dist && Math.round(track.dist), health: +myHealth.toFixed(2), alive: myAlive, rate: +track.rate.toFixed(2) });
+  if (isHost) broadcastRoster(); else renderPlayers();
+  if (cur === 'lobby') camChip();
+}
+const GZ_MAX = 240;   // the distance gauge runs from 0 (bottom) to 240 cm (top)
+function paintHud(t, band, inBand) {
+  const playing = game.state === 'playing' && myAlive, bad = playing && !myValid;
+  $('#play').classList.toggle('bad', bad);
+  $('#pil').textContent = !track.seen ? (playing ? 'Lost it! Get back on the star' : 'Find the target')
+    : inBand ? 'On target' : track.dist < band.min ? 'Too close! Back up' : 'Too far! Get closer';
+  $('#gmf').style.width = (myHealth * 100) + '%';
+  $('#gmf').style.background = myHealth > .6 ? '#3dff8f' : myHealth > .3 ? '#ffc61a' : '#ff2e7e';
+  $('#vg').style.setProperty('--h', (12 + 60 * myHealth) + '%');
+  $('#clk').textContent = fmt(t);
+  const bt = bandText(band), bEl = $('#band');
+  if (bEl.textContent !== bt) bEl.textContent = bt;
+  bEl.classList.toggle('bad', !!bt && !inBand && track.seen);
+  let nb = '';
+  if (game.state === 'playing' && game.mode === 'zone' && (12 - t % 12) < 3) nb = 'Next: ' + bandText(bandAt('zone', game.seed, t + 3));
+  if ($('#nextBand').textContent !== nb) $('#nextBand').textContent = nb;
+  const gz = $('#gz'); gz.classList.toggle('hidden', !bt);
+  if (bt) {
+    const top = 1 - Math.min(band.max, GZ_MAX) / GZ_MAX, bot = 1 - Math.min(band.min, GZ_MAX) / GZ_MAX;
+    $('#gzb').style.top = top * 100 + '%'; $('#gzb').style.height = Math.max(4, (bot - top) * 100) + '%';
+    const mk = $('#gzm'); mk.style.display = track.seen && track.dist != null ? '' : 'none';
+    mk.style.top = (1 - Math.min(track.dist || 0, GZ_MAX) / GZ_MAX) * 100 + '%';
+  }
 }
 function loop(ts) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.1, (ts - (lastFrame || ts)) / 1000); lastFrame = ts;
-  if ($('#home').classList.contains('on')) { trackFrame(); drawHome(); if ($('#stepCam').classList.contains('on')) seenSound(); return; }
-  if (!$('#play').classList.contains('on')) return;
+  drawBackdrops(ts);
+  if (cur === 'outScreen' || cur === 'endScreen') { publish(ts); return; }
+  if (cur !== 'lobby' && cur !== 'play') return;
   trackFrame();
-  if (game.state === 'lobby') seenSound();
+  if (cur === 'lobby') { if (game.state === 'lobby') seenSound(); if (camOpen) drawCamCheck(); publish(ts); return; }
 
   let band = { min: 0, max: Infinity }, t = 0;
   if (game.state === 'countdown') {
-    const left = Math.ceil((startAt - ts) / 1000);
-    const el = $('#countdown');
-    if (el.textContent !== String(left) && left > 0) { el.textContent = left; snd.tick(); }
-    if (ts >= startAt) { game.state = 'playing'; t0 = Date.now(); el.classList.add('hidden'); snd.go(); buzz(80); }
+    const rem = startAt - ts, ph = rem > 1800 ? 0 : rem > 900 ? 1 : 2;
+    if (ph !== introPhase) {
+      introPhase = ph;
+      if (ph === 1) { slam('Round ' + (game.round || 1), '#ff2e7e', '#ffc61a'); $('#it').textContent = (MODE[game.mode] || MODE.classic)[1]; $('#it').style.visibility = ''; snd.slam(); buzz(40); }
+      if (ph === 2) { $('#it').style.visibility = 'hidden'; slam('Ready?', '#5327d9', '#16c0ff'); snd.slam(); buzz(60); }
+    }
+    if (ts >= startAt) {
+      game.state = 'playing'; t0 = Date.now(); nextShot = ts + 2500;
+      slam('Go!', '#3dff8f', '#ffc61a'); flash(.9); snd.go(); buzz([40, 40, 120]);
+      setTimeout(() => $('#in').classList.add('hidden'), 550);
+    }
   }
   if (game.state === 'playing') {
     t = (Date.now() - t0) / 1000;
     band = bandAt(game.mode, game.seed, t);
-    if (game.mode === 'zone' && band.phase !== lastPhase) { if (lastPhase >= 0) { snd.zone(); buzz(40); } lastPhase = band.phase; }
+    if (game.mode === 'zone' && band.phase !== lastPhase) { if (lastPhase >= 0) { snd.zone(); buzz([40, 40, 40]); toast('Zone moved!', 1200); } lastPhase = band.phase; }
   }
 
   const inBand = track.dist != null && track.dist >= band.min && track.dist <= band.max;
   myValid = track.seen && inBand;
 
   if (game.state === 'playing' && myAlive) {
-    if (myValid) { myHealth = Math.min(1, myHealth + dt * 0.15); if (wasWarning) snd.safe(); wasWarning = false; }
+    if (myValid) { myHealth = Math.min(1, myHealth + dt * 0.15); if (wasWarning) { snd.safe(); buzz(15); flash(.25); } wasWarning = false; }
     else {
       myHealth -= dt / game.grace; wasWarning = true;
-      if (Math.floor(ts / 220) !== Math.floor((ts - dt * 1000) / 220)) { snd.warn(); buzz(40); }
+      // the warning beep, the vibration and the pink dots all pulse together, faster as the grace runs out
+      if (ts >= pulseAt) { snd.warn(); buzz(30); $('#vg').animate([{ opacity: 1 }, { opacity: .3 }], { duration: 130 }); pulseAt = ts + 130 + 470 * Math.max(0, myHealth); }
     }
+    if (ts > nextShot) { snap(t); nextShot = ts + 3200 + Math.random() * 2600; }
     if (myHealth <= 0) {
       myHealth = 0; myAlive = false;
+      snap(t);                                  // the shove that did it
       snd.out(); buzz([200, 100, 400]);
-      $('#outScreen').classList.remove('hidden');
-      $('#outInfo').textContent = `after ${t.toFixed(1)} s`;
       if (isHost) { const p = me(); p.alive = false; p.outAt = Date.now() - t0; announceOut(myId); checkEnd(); }
+      $('#play').classList.remove('bad');
+      showOut(t);
     }
   }
-
-  // publish my state ~10x/s
-  const p = me(); if (p) Object.assign(p, { seen: track.seen, dist: track.dist, health: myHealth, rate: track.rate });
-  if (ts - lastSend > 100) {
-    lastSend = ts;
-    if (!isHost && hostConn) send(hostConn, { t: 'state', seen: track.seen, dist: track.dist && Math.round(track.dist), health: +myHealth.toFixed(2), alive: myAlive, rate: +track.rate.toFixed(2) });
-    if (isHost) { broadcastRoster(); }
-    else renderPlayers();
-  }
-
-  // HUD
-  const pill = $('#seenPill');
-  pill.textContent = track.seen ? 'TARGET ✓' : 'NO TARGET';
-  pill.className = 'pill ' + (track.seen ? 'ok' : 'bad');
-  $('#dist').textContent = track.dist != null && track.seen ? Math.round(track.dist) + ' cm' : '—';
-  $('#hp').style.width = (myHealth * 100) + '%';
-  $('#hp').style.background = myHealth > .5 ? 'var(--ok)' : myHealth > .25 ? 'var(--warn)' : 'var(--bad)';
-  const bt = bandText(band), bEl = $('#band');
-  bEl.textContent = bt; bEl.className = bt ? (inBand ? 'ok' : 'bad') : '';
-  let nb = '';
-  if (game.state === 'playing' && game.mode === 'zone' && (12 - t % 12) < 3) nb = 'next: ' + bandText(bandAt('zone', game.seed, t + 3));
-  $('#nextBand').textContent = nb;
-  $('#flash').style.opacity = (game.state === 'playing' && myAlive && !myValid) ? 0.35 + 0.15 * Math.sin(ts / 60) : 0;
-  drawOverlay();
+  publish(ts);
+  if (cur !== 'play') return;
+  paintHud(t, band, inBand);
+  drawOverlay(ts, game.state === 'playing' && myAlive && !myValid);
 }
 
+// ---------- players on screen ----------
+const tiltOf = id => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) | 0; return (Math.abs(h) % 13) - 6; };
+const eyes = (i = 0) => `<span class="eye"><i style="animation-delay:-${(i * .7).toFixed(2)}s"></i></span><span class="eye"><i style="animation-delay:-${(i * .7 + .25).toFixed(2)}s"></i></span>`;
+const avatar = (p, cls = '', i = 0, extra = '', style = '') => `<div class="av ${cls}" style="background:${esc(p.col)};${style}">${eyes(i)}${extra}</div>`;
+let sigL = '', sigR = '', sigO = '';
+// The roster arrives ten times a second; the avatars are only rebuilt when something visible changed, so the eyes keep wandering smoothly.
 function renderPlayers() {
-  const list = Object.entries(players);
-  $('#plist').innerHTML = list.length < 2 ? '' : list.map(([id, p]) =>
-    `<div class="p ${p.alive ? '' : 'out'}"><b>${esc(p.name)}</b>${id === myId ? ' you' : ''} ${p.seen ? '👁' : '·'}
-     <div class="bar"><i style="width:${Math.max(0, p.health * 100)}%"></i></div></div>`).join('');
-  if (game.state === 'lobby') $('#lobbyPlayers').innerHTML = list.map(([id, p]) =>
-    `<div class="chip ${id === myId ? 'me' : ''}"><b>${esc(p.name)}</b>${(p.rate || 0) >= 0.8 ? '🟢' : (p.rate || 0) > 0.3 ? '🟡' : '⚪️'} ${Math.round((p.rate || 0) * 100)}%${p.dist && p.seen ? ' · ' + Math.round(p.dist) + ' cm' : ''}</div>`).join('');
+  const list = Object.entries(players).sort(([a], [b]) => (b === myId) - (a === myId));
+  if (game.state === 'lobby') {
+    const sig = online + '|' + list.map(([id, p]) => id + p.name + p.col + ((p.rate || 0) >= 0.8 ? 1 : 0)).join('|');
+    if (sig !== sigL) {
+      const grew = sig.split('|').length > sigL.split('|').length && sigL;
+      sigL = sig;
+      $('#pl').innerHTML = list.map(([id, p], i) => {
+        const rdy = (p.rate || 0) >= 0.8;
+        const bd = (online && id === 'host' ? `<i class="bd" style="left:-9px;top:-10px;background:#ffc61a">${ico('crown')}</i>` : '')
+          + (id === myId ? `<i class="bd" style="left:-9px;bottom:-8px;background:#fff">${ico('pencil')}</i>` : '')
+          + (rdy ? `<i class="bd" style="right:-9px;bottom:-8px;background:#3dff8f">${ico('check')}</i>` : '');
+        return `<div class="pv${id === myId ? ' me' : ''}${grew && i === list.length - 1 ? ' pop' : ''}">${avatar(p, rdy ? 'rdy' : '', i, bd, 'rotate:' + tiltOf(id) + 'deg')}<span>${esc(p.name)}</span></div>`;
+      }).join('');
+      renderLobby();
+      if (grew) buzz(10);
+    }
+    return;
+  }
+  const rivals = list.filter(([id]) => id !== myId);
+  const sig = rivals.map(([id, p]) => id + p.name + (p.alive ? p.seen ? 2 : 1 : 0)).join('|');
+  if (sig !== sigR) {
+    sigR = sig;
+    $('#rv').innerHTML = rivals.map(([, p], i) => `<div class="rv">${avatar(p, 's ' + (p.alive ? p.seen ? 'rdy' : 'lost' : 'dead'), i)}<span>${esc(p.name)}</span></div>`).join('');
+  }
+  if (sig !== sigO && cur === 'outScreen') {
+    sigO = sig;
+    $('#ss').innerHTML = rivals.filter(([, p]) => p.alive).map(([, p], i) => `<div class="rv">${avatar(p, p.seen ? 'rdy' : '', i)}<span>${esc(p.name)}</span></div>`).join('');
+  }
+}
+
+// ---------- end of round: the star strikes a pose, then the paper runs a much worse photo ----------
+// Bibi Blitz is made up. She is drawn in parts so the front page can swap in an unflattering version.
+const SKIN = '#E9A97F', SKD = '#B9744A';
+const C = {
+  legs: `<path d="M58 132 L52 196" stroke="${SKIN}" stroke-width="9" stroke-linecap="round"/><path d="M70 132 L84 162 L74 196" stroke="${SKIN}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M44 199 Q52 192 60 199Z M66 199 Q74 192 84 199Z" fill="#111" stroke="#111" stroke-width="4" stroke-linejoin="round"/>`,
+  hip: `<path d="M82 84 L100 104 L84 118" stroke="${SKIN}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
+  dress: `<path d="M40 78 Q62 70 82 78 L96 138 Q62 148 26 138 Z" fill="#12c7a0"/><path d="M66 74 L82 78 L96 138 L72 143 Z" fill="#0c9d7e"/><path d="M40 78 Q62 70 82 78" stroke="#0c9d7e" stroke-width="3" fill="none"/><g fill="#fff"><circle cx="46" cy="96" r="1.8"/><circle cx="60" cy="110" r="1.8"/><circle cx="40" cy="124" r="1.8"/><circle cx="54" cy="130" r="1.8"/><circle cx="50" cy="86" r="1.2"/></g>`,
+  peace: `<g class="arm"><path d="M42 84 L24 66 L32 42" stroke="${SKIN}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="33" cy="40" r="6.5" fill="${SKIN}"/><path d="M30 36 L25 22 M36 36 L41 22" stroke="${SKIN}" stroke-width="5" stroke-linecap="round"/></g>`,
+  neck: `<path d="M56 62 L68 62 L68 74 L56 74Z" fill="${SKIN}"/>`,
+  hair: `<path d="M32 50 C24 20 46 2 64 6 C88 4 102 28 94 56 C92 70 84 74 80 64 L44 64 C40 72 32 66 32 50Z" fill="#FF2E63"/><path d="M78 10 C96 16 102 34 94 56 C92 66 86 70 82 62Z" fill="#D41F50"/>`,
+  face: `<circle cx="62" cy="46" r="17" fill="${SKIN}"/>`,
+  fringe: `<path d="M46 34 C50 18 76 16 80 34 C70 26 56 26 46 34Z" fill="#FF2E63"/><path d="M44 16 Q56 6 70 10" stroke="#FFB3C6" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+  shades: `<rect x="46" y="10" width="14" height="8" rx="3" fill="#111" transform="rotate(-12 53 14)"/><rect x="63" y="8" width="14" height="8" rx="3" fill="#111" transform="rotate(-6 70 12)"/>`,
+  wink: `<path d="M50 46 Q55 42 60 46" stroke="#111" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="70" cy="45" rx="4.5" ry="5.5" fill="#111"/><circle cx="71.5" cy="43" r="1.8" fill="#fff"/>`,
+  blush: `<circle cx="49" cy="53" r="3.5" fill="#FF8FA8" opacity=".8"/><circle cx="75" cy="53" r="3.5" fill="#FF8FA8" opacity=".8"/>`,
+  smile: `<path d="M57 55 Q63 62 69 55 Z" fill="#D2003A" stroke="#D2003A" stroke-width="1.5" stroke-linejoin="round"/>`
+};
+const sticker = s => `<g filter="url(#stk3)">${s}</g>`;
+const CEL = sticker(C.legs + C.hip + C.dress + C.peace + C.neck + C.hair + C.face + C.fringe + C.shades + C.wink + C.blush + C.smile);
+const bigEyes = (dx = 0, dy = 0) => [54, 70].map(x => `<circle cx="${x}" cy="45" r="5" fill="#fff" stroke="#111" stroke-width="2"/><circle cx="${x + dx}" cy="${45 + dy}" r="2" fill="#111"/>`).join('');
+// Each front page: the picture (box = the part of her the photo is cropped to), its own headlines, and the line under the quote.
+const JOKES = [
+  { // the wig comes off
+    box: '-12 -36 164 100',
+    svg: sticker(C.legs + C.dress
+      + `<path d="M42 84 L24 70 L20 44 M82 84 L100 70 L104 44" stroke="${SKIN}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="20" cy="41" r="6.5" fill="${SKIN}"/><circle cx="104" cy="41" r="6.5" fill="${SKIN}"/>`
+      + C.neck + C.face + `<path d="M51 36 Q56 30 63 30" stroke="#F8D2B4" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M59 29 l-2 -6 M63 28.5 l0 -7 M67 29 l3 -6" stroke="#FF2E63" stroke-width="2.4" stroke-linecap="round"/>`
+      + bigEyes(0, -1.5) + C.blush + `<ellipse cx="62" cy="57" rx="3.6" ry="4.6" fill="#7a0022"/>`
+      + `<g transform="translate(30 -44) rotate(22 62 36)">${C.hair + C.fringe + C.shades}<ellipse cx="62" cy="63" rx="17" ry="4.5" fill="#a3123f"/></g>`)
+      + `<path d="M76 20 l7 -9 M66 16 l3 -11 M88 26 l10 -6" stroke="#1a1033" stroke-width="3" stroke-linecap="round"/>`,
+    heads: ["Wig's off!", 'Bald truth!', 'Hair today…'], by: 'Bibi Blitz blames "a very strong breeze"'
+  },
+  { // caught with a finger up her nose
+    box: '-4 -2 131 80',
+    svg: sticker(C.legs + C.hip + C.dress + `<path d="M42 84 L27 70 L49 59" stroke="${SKIN}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
+      + C.neck + C.hair + C.face + C.fringe + C.shades + bigEyes(2, 1) + C.blush
+      + `<path d="M60.5 46.5 Q65.5 50 61.5 53.5" stroke="${SKD}" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M58 61 Q62 59 67 61.5" stroke="#D2003A" stroke-width="2.6" fill="none" stroke-linecap="round"/>`
+      + `<circle cx="50" cy="59" r="6.5" fill="${SKIN}" stroke="${SKD}" stroke-width="1.5"/><path d="M53 57 L61 52.6" stroke="${SKD}" stroke-width="7" stroke-linecap="round"/><path d="M53 57 L61 52.6" stroke="${SKIN}" stroke-width="4.4" stroke-linecap="round"/>`),
+    heads: ['Gold digger!', 'Caught picking!', 'Up to no good!'], by: 'Bibi Blitz says she was "adjusting a diamond"'
+  },
+  { // the sneeze
+    box: '-12 -20 164 100',
+    svg: sticker(C.legs + C.hip + C.dress + C.peace + C.neck + C.hair + C.face + C.fringe
+      + `<g transform="translate(8 -20) rotate(-18 62 12)">${C.shades}</g>`
+      + `<path d="M49 41 l7 4 -7 4 M75 41 l-7 4 7 4" stroke="#111" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` + C.blush
+      + `<ellipse cx="62" cy="57" rx="7.5" ry="6" fill="#7a0022"/><path d="M57 60 Q62 56.5 67 60 Q62 63.5 57 60Z" fill="#FF8FA8"/>`)
+      + `<g fill="#bdeaff" stroke="#1a1033" stroke-width="1.6"><circle cx="82" cy="58" r="3"/><circle cx="92" cy="52" r="2.4"/><circle cx="90" cy="66" r="3.6"/><circle cx="102" cy="60" r="2.8"/><circle cx="100" cy="74" r="2.2"/><circle cx="112" cy="68" r="3.2"/></g><path d="M74 55 L86 50 M75 61 L84 64" stroke="#1a1033" stroke-width="2" stroke-linecap="round"/>`,
+    heads: ['Ah-choo!', 'Bless her!', 'Snot a good look!'], by: 'Bibi Blitz, one second after saying "I never sneeze"'
+  },
+  { // face-first into a burger
+    box: '-12 -4 151 92',
+    svg: sticker(C.legs + C.hip + C.dress + `<circle cx="57" cy="93" r="3.2" fill="#D2003A"/><circle cx="50" cy="105" r="2.2" fill="#D2003A"/><path d="M42 84 L26 82 L41 71" stroke="${SKIN}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
+      + C.neck + C.hair + C.face + C.fringe + C.shades
+      + `<path d="M49 44 Q54 39.5 59 44 M65 44 Q70 39.5 75 44" stroke="#111" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="76" cy="54" r="4.5" fill="#FF8FA8" opacity=".8"/>`
+      + `<g transform="translate(1 5)"><path d="M41 57 Q42 45 56 45 Q70 45 71 57 Z" fill="#E8A33D" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/><path d="M49 50 l2 .6 M56 48 l2 .6 M62 51 l2 .6" stroke="#fff5d6" stroke-width="1.6" stroke-linecap="round"/>`
+      + `<rect x="41" y="59.5" width="30" height="5.5" rx="2.5" fill="#6B3A1E" stroke="#111" stroke-width="1.2"/><path d="M40 58.5 q3.2 4 6.4 0 q3.2 4 6.4 0 q3.2 4 6.4 0 q3.2 4 6.4 0 q3.2 4 6.4 0" stroke="#4CC24A" stroke-width="3.4" fill="none" stroke-linecap="round"/>`
+      + `<path d="M42 66 h28 q0 6 -6 6 h-16 q-6 0 -6 -6z" fill="#E8A33D" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/><path d="M62 71 q-2.5 7 0 10 q3.5 -3 0 -10z" fill="#D2003A"/>`
+      + `<circle cx="41" cy="67" r="6" fill="${SKIN}" stroke="${SKD}" stroke-width="1.5"/></g>`),
+    heads: ['Diet? What diet?', 'Caught mid-bite!', 'Queen of buns!'], by: 'Bibi Blitz, author of "Raw Kale Only"'
+  }
+];
+const QUOTES = ['"Get my good side. Both sides are good."', '"Was that the flash, or my teeth?"', '"I only do this pose once. Twice. Okay, nine times."', '"Make sure the sunglasses are in it. They have an agent."', '"Darling, I can hear you elbowing each other."'];
+const J_MID = ['Mostly elbow', 'Blurry, but brave', 'Got her left ear', 'A very nice pigeon', 'Lens cap was on', 'Photo of a hedge'], J_LAST = ['Photographed own thumb', 'Arrested by bodyguard', 'Took a selfie by mistake', 'Phone fell in a bush'];
+const PR1 = ['$1,000,000', '$2.4 million', 'A gold camera'], PR2 = ['$3.50', '$12', 'A coupon', 'One button'], PR3 = ['A sandwich', '-$40', 'Nothing', 'A bus pass'];
+const P_CAP = ['The money shot', 'Mostly elbow', 'Blurry, but brave', 'Art, probably', 'A table. Exclusive!', "Somebody's thumb", 'Pulitzer pending', 'Scene of the crime'];
+const P_PRICE = ['$900', '$75', 'A bus pass', '$4', '$12,000', 'A coupon', '$1.50', 'Two buttons'];
+let anims = [], timers = [], endData = null;
+const A = (el, kf, o) => { const a = el.animate(kf, Object.assign({ fill: 'both' }, o)); anims.push(a); return a; }, T = (f, ms) => timers.push(setTimeout(f, ms));
+function stopEnd() { anims.forEach(a => a.cancel()); anims = []; timers.forEach(clearTimeout); timers = []; $('#dk').classList.remove('on'); }
+function endButtons() {
+  $('#phB').classList.toggle('hidden', !roundPhotos.length);
+  $('#btnAgain').classList.toggle('hidden', isGuest());
+  $('#ewait').classList.toggle('hidden', !isGuest());
+}
+function runEnd(d) {
+  stopEnd(); endData = d;
+  // The same seed on every phone, so the whole room reads the same front page.
+  const R = rng((game.seed | 0) + 4711), pick = a => a[Math.floor(R() * a.length)];
+  const st = d.standings, w = st[0], won = w.id === myId, nm = s => s.id === myId ? 'You' : esc(s.name);
+  const joke = pick(JOKES), q = pick(QUOTES);
+  $('#ttl').textContent = !d.winner ? 'Nobody wins!' : won ? 'You win!' : w.name + ' wins!';
+  $('#hl').textContent = pick(joke.heads);
+  $('#bub').textContent = q; $('#qt').textContent = q; $('#by').textContent = joke.by;
+  $('#cel').innerHTML = CEL; $('#cel2').setAttribute('viewBox', joke.box); $('#cel2').innerHTML = joke.svg;
+  $('#cr').innerHTML = `${avatar(w, 'xs rdy')}Photo: ${nm(w)}. Sold for<b>${pick(PR1)}</b>`;
+  const rest = st.slice(1), mid = J_MID.slice().sort(() => R() - .5);
+  $('#rk').innerHTML = rest.map((s, i) => { const lastOne = i === rest.length - 1 && rest.length > 1;
+    return `<div class="nr"><i>${i + 2}</i>${avatar(s, 'xs rdy')}${nm(s)}<span>${lastOne ? pick(J_LAST) : mid[i % mid.length]}</span><b class="p">${lastOne ? pick(PR3) : pick(PR2)}</b></div>`; }).join('');
+  endButtons();
+  // fit the paper to the phone: a long list of players gets a shorter photo
+  const np = $('#np'); np.style.zoom = ''; $('#fp').style.height = Math.max(92, 148 - Math.max(0, rest.length - 3) * 22) + 'px';
+  fit($('#ttl'), 276); const hl = $('#hl'); hl.style.fontSize = ''; hl.parentNode.style.fontSize = ''; fit(hl, 236);
+  const room = SH - 78, h = np.offsetHeight;
+  if (h > room) np.style.zoom = room / h;
+  np.style.top = Math.max(12, (SH - 60 - Math.min(h, room)) / 2) + 'px';
+  const arm = $('#cel').querySelector('.arm'); arm.style.transformOrigin = '42px 84px';
+  // 1. the pose: she jumps in, flash, title, quote
+  A($('#efl'), [{ opacity: 1 }, { opacity: 0 }], { duration: 320, delay: 260, easing: 'ease-out', fill: 'forwards' });
+  A($('#cel'), [{ transform: 'translateY(320px) rotate(8deg)' }, { transform: 'translateY(-14px) rotate(-3deg)', offset: .7 }, { transform: 'none' }], { duration: 340, easing: 'ease-out' });
+  A(arm, [{ transform: 'rotate(70deg)' }, { transform: 'rotate(70deg)', offset: .45 }, { transform: 'rotate(-12deg)', offset: .75 }, { transform: 'rotate(0)' }], { duration: 520, easing: 'ease-out' });
+  A($('#ttl'), [{ scale: 3, opacity: 0 }, { scale: .9, opacity: 1, offset: .7 }, { scale: 1, opacity: 1 }], { duration: 240, delay: 300, easing: 'ease-out' });
+  A($('#bub'), [{ transform: 'translateY(20px) scale(.8)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 200, delay: 520, easing: 'cubic-bezier(.3,1.6,.6,1)' });
+  A($('#eft'), [{ opacity: 0 }, { opacity: 0 }], { duration: 1 });
+  T(() => { if (won) snd.win(); else snd.lose(); buzz(won ? [80, 60, 80, 60, 240] : 80); }, 260); T(() => snd.sparkle(), 420);
+  // 2. the paper spins in with the photo they actually printed
+  const P = 1450;
+  A($('#pose'), [{ opacity: 1, scale: 1 }, { opacity: 0, scale: .7 }], { duration: 180, delay: P, easing: 'ease-in' });
+  A(np, [{ transform: 'scale(.04) rotate(-720deg)', opacity: 1 }, { transform: 'scale(1.06) rotate(0deg)', opacity: 1, offset: .85 }, { transform: 'none', opacity: 1 }], { duration: 460, delay: P + 60, easing: 'cubic-bezier(.3,.6,.3,1)' });
+  T(() => { snd.slam(); buzz(60); }, P + 450);
+  A($('#cr'), [{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: P + 480 });
+  [...$('#rk').children].forEach((r, i) => { const at = P + 540 + i * 90;
+    A(r, [{ transform: 'translateX(-110%)', opacity: 0 }, { transform: 'translateX(3%)', opacity: 1, offset: .75 }, { transform: 'none', opacity: 1 }], { duration: 220, delay: at, easing: 'ease-out' }); T(() => snd.row(), at); });
+  A($('#eft'), [{ opacity: 0, transform: 'translateY(30px)' }, { opacity: 1, transform: 'none' }], { duration: 220, delay: P + 600 + rest.length * 90, easing: 'cubic-bezier(.3,1.6,.6,1)' });
+}
+// A tap anywhere jumps straight to the finished front page.
+$('#endScreen').addEventListener('pointerdown', e => { if (e.target.closest('button,.lay')) return; anims.forEach(a => { try { a.finish(); } catch {} }); timers.forEach(clearTimeout); timers = []; });
+function openPhotos() {
+  const list = roundPhotos.slice().sort((a, b) => (b.mine ? 1 : 0) - (a.mine ? 1 : 0)).slice(0, 16);
+  $('#dc').innerHTML = list.map((p, i) => `<div class="pc"><i class="tape"></i><div class="pic tall"><img src="${p.d}" alt="" draggable="false"><span class="tag">Sold ${P_PRICE[i % P_PRICE.length]}</span></div><b>${P_CAP[i % P_CAP.length]}</b><small>${p.mine ? 'Your shot' : 'Shot by ' + esc(p.name)} at ${fmt(p.at)}</small><button class="mini sm" data-i="${i}" style="position:absolute;right:10px;bottom:10px">Save</button></div>`).join('');
+  const cards = [...$('#dc').children];
+  cards.forEach((c, i) => c.querySelector('button').onclick = () => saveImage(list[i].d, 'round-photo-' + (i + 1) + '.jpg'));
+  deck(cards, [-2, 3, -3, 2], i => { $('#dd').innerHTML = dotsHtml(cards.length, i); }, () => $('#dk').classList.remove('on'));
+  $('#dk').classList.add('on');
 }
 
 // ---------- target screen ----------
@@ -888,14 +1472,14 @@ function screenScale() {
 let markerReturn = 'home', markerUrl = location.pathname;
 function showMarker(keepReturn) {
   if (keepReturn !== true) {
-    markerReturn = $('#play').classList.contains('on') ? 'play' : 'home';
+    markerReturn = cur === 'lobby' ? 'lobby' : 'home';
     markerUrl = location.search.includes('target') ? location.pathname : location.pathname + location.search;
   }
   // A real image (not inline SVG), so a long press or right click offers "Save image".
-  if (!$('#markerSvg img')) { const im = new Image(); im.alt = 'Sightline target'; im.src = targetPngUrl(); $('#markerSvg').appendChild(im); }
+  if (!$('#markerSvg img')) { const im = new Image(); im.alt = TITLE + ' target'; im.src = targetPngUrl(); $('#markerSvg').appendChild(im); }
   // While the target is showing, the address is a link that opens straight on it, so it can be shared as is.
   try { history.replaceState(null, '', location.pathname + '?target=1'); } catch {}
-  show('markerScreen'); keepAwake();
+  keepAwake();
   const sc = screenScale();
   // the ring is 94% of the drawing's width, so the drawing is SCREEN_CM / 0.94 wide
   $('#markerSvg img').style.width = (SCREEN_CM * 10 / 0.94 * sc.v) + 'px';
@@ -904,12 +1488,13 @@ function showMarker(keepReturn) {
     : 'This ring should be ' + SCREEN_CM + ' cm across, but this phone\'s screen size is a guess. Check it once with a bank card.';
   $('#btnCheckSize').textContent = sc.src === 'measured' ? 'Re-check size with a card' : 'Check size with a card';
   $('#btnCheckSize').classList.toggle('need', !sc.sure);
+  if (keepReturn === 'now') show('markerScreen'); else go('markerScreen', 'push', keepReturn === true ? -1 : 1);
 }
 
 // Bank-card check: every bank card is 53.98 mm on its short edge.
 let calV = 6.1;
 function renderCal() { $('#calBar').style.width = (53.98 * calV) + 'px'; }
-function showCal() { calV = screenScale().v; renderCal(); show('calScreen'); }
+function showCal() { calV = screenScale().v; renderCal(); go('calScreen', 'push', 1); }
 function holdRepeat(btn, fn) {
   let t1, t2;
   const stop = () => { clearTimeout(t1); clearInterval(t2); };
@@ -936,7 +1521,7 @@ function printSheetSvg(cm) {
   }
   // scale-check ruler: 100 mm with cm marks
   const rx = (P.w - 100) / 2, ry = P.h - margin - 16;
-  o += `<text x="${rx}" y="${ry - 3}" font-family="sans-serif" font-size="3" font-weight="bold">Sightline target, ring ${cm} cm. Print at 100% / "Actual size". This ruler must measure exactly 100 mm.</text>`;
+  o += `<text x="${rx}" y="${ry - 3}" font-family="sans-serif" font-size="3" font-weight="bold">${TITLE} target, ring ${cm} cm. Print at 100% / "Actual size". This ruler must measure exactly 100 mm.</text>`;
   o += `<line x1="${rx}" y1="${ry}" x2="${rx + 100}" y2="${ry}" stroke="#000" stroke-width="0.2"/>`;
   for (let i = 0; i <= 100; i++) {
     const len = i % 10 === 0 ? 3 : i % 5 === 0 ? 2 : 1;
@@ -954,6 +1539,47 @@ function printTarget() {
   if (!customSize) setSize(PRINT_CM);   // printing the standard target selects "Printout"
   setTimeout(() => window.print(), 100);
 }
+// The target drawn as a PNG, ring outer diameter 94% of the width.
+function targetPngUrl() {
+  const N = 1200, u = N / 100, c = document.createElement('canvas'); c.width = c.height = N;
+  const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, N, N);
+  x.lineWidth = 10 * u; x.strokeStyle = '#000'; x.beginPath(); x.arc(N / 2, N / 2, 42 * u, 0, Math.PI * 2); x.stroke();
+  x.fillStyle = '#000'; x.beginPath(); x.arc(N / 2, N / 2, 16 * u, 0, Math.PI * 2); x.fill();
+  return c.toDataURL('image/png');
+}
+
+// ---------- build the fixed parts of each screen ----------
+function drawLogo() {
+  const LG = $('#LG'), NS = 'http://www.w3.org/2000/svg', base = { 'text-anchor': 'middle', 'font-family': 'Fugaz One', 'stroke-linejoin': 'round' };
+  const mk = (t, a) => { const e = document.createElementNS(NS, 'text'); e.textContent = t; for (const k in a) e.setAttribute(k, a[k]); return e; };
+  LG.innerHTML = ''; let mw = 1;
+  GAME_NAME.forEach(l => { const p = mk(l, { ...base, 'font-size': 100 }); LG.appendChild(p); mw = Math.max(mw, p.getComputedTextLength()); p.remove(); });
+  const sz = Math.min(92, 220 * 100 / mw), lh = sz * .92, W = sz * .17, d = sz * .085, y0 = 100 + sz * .36 - lh * (GAME_NAME.length - 1) / 2, cx = 149 - d / 2;
+  // whole words are layered (shadow outline, shadow, ink outline, fill) so the outlines never cut into a neighbouring letter
+  [[d, d * 1.3, INK, INK, W + 8], [d, d * 1.3, '#ff4fa3', '#ff4fa3', W], [0, 0, INK, INK, W], [0, 0, '#fff8e7', 'none', 0]].forEach(l =>
+    GAME_NAME.forEach((t, i) => LG.appendChild(mk(t, { ...base, 'font-size': sz, x: cx + (GAME_NAME.length > 1 ? (i ? 10 : -10) : 0) + l[0], y: y0 + i * lh + l[1], fill: l[2], stroke: l[3], 'stroke-width': l[4] }))));
+}
+$('#hb').innerHTML = tk('tH', 'Host game', 'Friends use your code', 'camera', PK) + tk('tJ', 'Join game', 'Got a room code?', 'ticket', BL) + tk('tS', 'Play unsynced', 'No connection needed', 'nowifi', YL);
+$('#jb').innerHTML = tk('tG', 'Join', 'Straight to the lobby', 'arrow', BL);
+$('#sb').innerHTML = tk('tSt', 'Start round', '', '', PK);
+$('#pb').innerHTML = tk('tP', 'Pick Classic', '', 'check', YL);
+$('#db').innerHTML = tk('tD', 'Done', "That's me", 'check', BL);
+$('#setB').innerHTML = tk('tSet', 'Done', 'Back to the lobby', 'check', BL);
+$('#ob').innerHTML = tk('tOA', 'Play again', 'Back to the lobby', '', BL);
+$('#shr').innerHTML = ico('share'); $('#dice').innerHTML = ico('dice');
+$('#stC').insertAdjacentHTML('beforeend', ''); $('#stC').children[0].insertAdjacentHTML('afterend', ico('camera'));
+$('#stS').children[0].insertAdjacentHTML('afterend', ico('volume')); $('#stP').children[0].insertAdjacentHTML('afterend', ico('photo'));
+$('#mcs').innerHTML = MODE_LIST.map(m => `<div class="pc"><i class="tape"></i><div class="pic" style="--a:${m[5]};--b:${m[6]}">${ico(m[4])}<span class="stamp">Picked!</span></div><b>${m[1]}</b><small>${m[3]}</small></div>`).join('');
+const HOW = [
+  ['target', '#12c7a0', '#4fe0bf', 'Put the target on a table', 'Draw it, print it, or show it on a spare phone. That is the star everyone is trying to snap.'],
+  ['camera', '#ffc91a', '#ffdf52', 'Point your camera at it', 'The brackets snap shut and your phone chimes when it has the shot.'],
+  ['hand', '#ff2e7e', '#ff5c9a', 'Ruin everyone else\'s shot', 'Block their camera, cover the target, move it, stand in the way.'],
+  ['volume', '#0fa8ee', '#3fc6fa', 'Lose it and your phone beeps', 'Your bar drains until you find the target again. Empty bar: you are out.'],
+  ['crown', '#6a3df2', '#16c0ff', 'Last camera on the star wins', 'The winner gets the front page. Everyone else gets a sandwich.']
+];
+$('#hcs').innerHTML = HOW.map((h, i) => `<div class="pc"><i class="tape"></i><div class="pic" style="--a:${h[1]};--b:${h[2]}">${ico(h[0])}<span class="tag">${i + 1} of ${HOW.length}</span></div><b>${h[3]}</b><small>${h[4]}</small></div>`).join('');
+const howDeck = deck([...$('#hcs').children], [-2, 3, -3, 2, -2], i => { $('#hdots').innerHTML = dotsHtml(HOW.length, i); }, () => go('home', 'push', -1));
 
 // ---------- wire up UI ----------
 function saveSettings() {
@@ -971,78 +1597,6 @@ document.querySelectorAll('.stepper button').forEach(b => b.onclick = () => {
   showStep(b.dataset.for); saveSettings(); pushSettings();
 });
 showStep('markerCm'); showStep('grace');
-// mode cards
-function setMode(m) {
-  $('#mode').value = m; store.set('mode', m);
-  document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('sel', b.dataset.mode === m));
-  pushSettings();
-}
-document.querySelectorAll('#modes button').forEach(b => b.onclick = () => { if (!isGuest()) setMode(b.dataset.mode); });
-setMode(store.get('mode', 'classic'));
-// in-page yes/no dialog (no browser pop-ups)
-function ask(msg) {
-  return new Promise(res => {
-    $('#dialogMsg').textContent = msg; $('#dialog').classList.remove('hidden');
-    const done = v => { $('#dialog').classList.add('hidden'); res(v); };
-    $('#dialogYes').onclick = () => done(true); $('#dialogNo').onclick = () => done(false);
-  });
-}
-$('#btnSound').onclick = () => {
-  snd.hello(myId); buzz(60);
-  $('#btnSound').textContent = '🔊 Play it again';
-  $('#muteHelp').classList.remove('hidden');
-  $('#btnSoundNext').textContent = 'I heard it';
-};
-
-// ----- setup flow: role -> (name) -> sound -> camera -> lobby -----
-let role = null, stepIdx = 0;
-const flow = () => role === 'join' ? ['stepRole', 'stepName', 'stepSound', 'stepCam'] : ['stepRole', 'stepSound', 'stepCam'];
-function goStep(i) {
-  stepIdx = Math.max(0, i);
-  const id = flow()[stepIdx];
-  document.querySelectorAll('.step').forEach(el => el.classList.toggle('on', el.id === id));
-  document.querySelectorAll('.stepCount').forEach(el => { el.textContent = 'Step ' + stepIdx + ' of ' + (flow().length - 1); });
-  if (id === 'stepCam') startCamera();   // the permission prompt appears here, next to the preview it is for
-}
-function pickRole(r) {
-  role = r; unlockAudio();
-  $('#btnCamNext').textContent = r === 'join' ? 'Join game' : r === 'host' ? 'Open lobby' : 'Continue';
-  goStep(1);
-}
-$('#btnHost').onclick = () => pickRole('host');
-$('#btnJoinRole').onclick = () => pickRole('join');
-$('#btnSolo').onclick = () => pickRole('solo');
-document.querySelectorAll('.step .back').forEach(b => b.onclick = () => goStep(stepIdx - 1));
-$('#btnNameNext').onclick = () => {
-  if (role === 'join' && $('#joinCode').value.trim().length !== 4) { toast('Enter the 4-letter room code'); return; }
-  saveSettings(); goStep(stepIdx + 1);
-};
-$('#joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
-$('#btnSoundNext').onclick = () => goStep(stepIdx + 1);
-$('#btnCamNext').onclick = () => {
-  saveSettings();
-  if (role === 'host') hostGame(true); else if (role === 'join') joinGame($('#joinCode').value); else hostGame(false);
-};
-$('#btnSettings').onclick = () => { settingsOpen = true; renderLobby(); };
-// icon picker: icons other players already use are greyed out
-$('#btnEmoji').onclick = () => {
-  const taken = Object.entries(players).filter(([k]) => k !== myId).map(([, pl]) => pl.name);
-  $('#emojiGrid').innerHTML = EMOJI.map(e => `<button class="${e === cfg.name ? 'sel' : ''}" ${taken.includes(e) ? 'disabled' : ''}>${e}</button>`).join('');
-  document.querySelectorAll('#emojiGrid button').forEach(b => b.onclick = () => { setEmoji(b.textContent); emojiOpen = false; renderLobby(); });
-  emojiOpen = true; renderLobby();
-};
-$('#btnEmojiClose').onclick = () => { emojiOpen = false; renderLobby(); };
-$('#btnSettingsDone').onclick = () => { settingsOpen = false; renderLobby(); };
-
-$('#btnMarker').onclick = showMarker;
-$('#btnHow').onclick = () => show('howScreen');
-$('#btnHowBack').onclick = () => show('home');
-$('#btnMarkerBack').onclick = () => { try { history.replaceState(null, '', markerUrl); } catch {} show(markerReturn); };
-$('#btnCheckSize').onclick = showCal;
-holdRepeat($('#calMinus'), () => { calV *= 0.995; renderCal(); });
-holdRepeat($('#calPlus'), () => { calV *= 1.005; renderCal(); });
-$('#calDone').onclick = () => { store.set('pxPerMm', Math.round(calV * 1000) / 1000); showMarker(true); toast('Screen size saved on this phone'); };
-
 // target size: fixed sizes first, exact value only after tapping Custom
 let customSize = store.get('customSize', false) || ![SCREEN_CM, PRINT_CM].includes(cfg.markerCm);
 function renderSize() {
@@ -1058,20 +1612,130 @@ document.querySelectorAll('#sizeChips button').forEach(b => b.onclick = () => {
   renderSize();
 });
 renderSize();
-$('#btnTarget2').onclick = showMarker;
-$('#btnPrint').onclick = printTarget;
-// The target drawn as a PNG, ring outer diameter 94% of the width.
-function targetPngUrl() {
-  const N = 1200, u = N / 100, c = document.createElement('canvas'); c.width = c.height = N;
-  const x = c.getContext('2d');
-  x.fillStyle = '#fff'; x.fillRect(0, 0, N, N);
-  x.lineWidth = 10 * u; x.strokeStyle = '#000'; x.beginPath(); x.arc(N / 2, N / 2, 42 * u, 0, Math.PI * 2); x.stroke();
-  x.fillStyle = '#000'; x.beginPath(); x.arc(N / 2, N / 2, 16 * u, 0, Math.PI * 2); x.fill();
-  return c.toDataURL('image/png');
+// in-page yes/no dialog (no browser pop-ups)
+function ask(msg) {
+  return new Promise(res => {
+    $('#dialogMsg').textContent = msg; $('#dialog').classList.remove('hidden');
+    const done = v => { $('#dialog').classList.add('hidden'); res(v); };
+    $('#dialogYes').onclick = () => done(true); $('#dialogNo').onclick = () => done(false);
+  });
 }
-const qRoom = new URLSearchParams(location.search).get('room');
-if (new URLSearchParams(location.search).has('target')) showMarker();   // shared target link: open on the target
-if (qRoom) { $('#joinCode').value = qRoom.toUpperCase().slice(0, 4); pickRole('join'); goStep(2); }   // code already known: skip to sound
+
+// ----- home -----
+function openJoin() {
+  $('#joinLay').classList.add('on'); joining = false;
+  $('#msg').textContent = "Ask the host. It's on their screen."; $('#msg').classList.remove('bad');
+  $('#sheet').animate([{ transform: 'translateY(-130%)' }, { transform: 'none' }], { duration: 280, easing: 'cubic-bezier(.2,1.1,.4,1)' });
+  setTimeout(() => { if (!$('#joinCode').value) $('#joinCode').focus(); }, 300);
+}
+function closeJoin() { $('#joinLay').classList.remove('on'); $('#joinCode').blur(); joining = false; mend(); fitStage(true); }
+bind('tH', () => hostGame(true));
+bind('tS', () => hostGame(false));
+bind('tJ', openJoin);
+bind('tG', () => { $('#joinCode').blur(); joinGame($('#joinCode').value.toUpperCase().trim()); }, () => {
+  if (joining) return false;
+  if ($('#joinCode').value.trim().length === 4) return true;
+  const m = $('#msg'), c = $('#joinCode'); m.textContent = 'Enter the 4-letter code'; m.classList.add('bad');
+  c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); buzz([30, 40, 30]);
+  return false;
+});
+$('#joinDim').onclick = $('#cnl').onclick = () => { if (peer && joining) { const p = peer; peer = null; try { p.destroy(); } catch {} } closeJoin(); };
+$('#joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+$('#btnHow').onclick = () => { howDeck.set(0); go('howScreen', 'push', 1); };
+$('#btnHowBack').onclick = () => go('home', 'push', -1);
+$('#btnMarker').onclick = () => showMarker();
+$('#btnTarget2').onclick = () => showMarker();
+$('#btnMarkerBack').onclick = () => { try { history.replaceState(null, '', markerUrl); } catch {} go(markerReturn, 'push', -1); };
+$('#btnCheckSize').onclick = showCal;
+$('#btnPrint').onclick = printTarget;
+holdRepeat($('#calMinus'), () => { calV *= 0.995; renderCal(); });
+holdRepeat($('#calPlus'), () => { calV *= 1.005; renderCal(); });
+$('#calDone').onclick = () => { store.set('pxPerMm', Math.round(calV * 1000) / 1000); showMarker(true); toast('Screen size saved on this phone'); };
+
+// ----- lobby -----
+holdBtn($('#btnLeave'), leaveGame);
+$('#cb').onclick = async () => {
+  if (!online || !codeReady) return;
+  const url = location.origin + location.pathname + '?room=' + roomCode;
+  try {
+    if (navigator.share) await navigator.share({ title: TITLE, text: 'Join my ' + TITLE + ' game: ' + roomCode, url });
+    else { await navigator.clipboard.writeText(url); toast('Link copied'); snd.pop(); buzz(10); }
+  } catch {}
+};
+// your look: nickname and colour; taken colours are greyed out
+function drawLook() {
+  $('#lkA').style.background = cfg.col;
+  const taken = others(myId, 'col');
+  $('#sw').innerHTML = COL.map(c => `<span class="sw${c === cfg.col ? ' sel' : ''}${taken.includes(c) ? ' tk' : ''}" data-c="${c}" style="background:${c}"></span>`).join('');
+}
+$('#pl').onclick = e => { if (!e.target.closest('.pv.me')) return; $('#lo').classList.add('on'); $('#nm').value = cfg.name; drawLook(); };
+$('#sw').onclick = e => { const s = e.target.closest('.sw'); if (!s) return; setLook(cfg.name, s.dataset.c); snd.pop(); drawLook(); };
+$('#nm').oninput = () => { const n = $('#nm').value.trim().slice(0, 8); if (n) setLook(n, cfg.col); };
+$('#nm').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+$('#dice').onclick = () => { const n = pickFree(NICK, others(myId, 'name').concat(cfg.name)); $('#nm').value = n; setLook(n, cfg.col); snd.pop(); };
+const closeLook = () => { $('#nm').blur(); $('#lo').classList.remove('on'); mend(); fitStage(true); };
+bind('tD', closeLook);
+// camera check card
+const camDeck = deck([$('#cc')], [-3], null, () => { $('#co').classList.remove('on'); camOpen = false; });
+$('#stC').onclick = () => { $('#co').classList.add('on'); camDeck.set(0); camOpen = true; if (!stream) startCamera(); };
+$('#btnCam').onclick = () => { camError = ''; startCamera(); };
+$('#stS').onclick = () => { snd.hello(myId); buzz(60); if (!soundOk) toast("Didn't hear it? Turn the volume up and Silent mode off.", 4000); soundOk = true; $('#stS').classList.add('ok'); };
+$('#stP').onclick = () => {
+  if (isGuest()) { toast('The host sets this'); return; }
+  cfg.photos = !cfg.photos; store.set('photos', cfg.photos); snd.pop(); pushSettings(); renderLobby();
+  toast(cfg.photos ? 'Round photos on: snapped as you play' : 'Round photos off');
+};
+// game mode cards
+function setMode(m) { hostMode = m; if (online) store.set('mode', m); pushSettings(); renderLobby(); }
+const mCards = [...$('#mcs').children];
+const mDeck = deck(mCards, [-2, 3, -3, 2], i => {
+  $('#mdots').innerHTML = dotsHtml(MODE_LIST.length, i);
+  mCards.forEach((c, j) => c.querySelector('.stamp').style.display = MODE_LIST[j][0] === hostMode ? 'block' : 'none');
+  setTk('tP', 'Pick ' + MODE_LIST[i][1], MODE_LIST[i][0] === hostMode ? 'Already picked' : online ? 'Everyone plays this mode' : 'For this phone only');
+});
+$('#md').onclick = () => { if (isGuest()) { toast('The host picks the mode'); return; } $('#mo').classList.add('on'); mDeck.set(MODE_LIST.findIndex(m => m[0] === hostMode)); };
+bind('tP', () => { setMode(MODE_LIST[mDeck.get()][0]); snd.pop(); $('#mo').classList.remove('on'); mend(); });
+// settings sheet
+$('#btnSettings').onclick = () => { renderLobby(); calibInfo(); $('#so').classList.add('on'); };
+bind('tSet', () => { $('#so').classList.remove('on'); mend(); });
+$('#btnDebug').onclick = () => { track.debug = !track.debug; $('#dbg').classList.toggle('hidden', !track.debug); $('#btnDebug').classList.toggle('sel', track.debug); };
+$('#btnCalib').onclick = () => {
+  if (!track.seen) { toast('Point at the target from 50 cm first'); return; }
+  cfg.fRatio = 50 * track.sidePx / (targetCm() * track.longSide); cfg.calibrated = true;
+  store.set('fRatio', cfg.fRatio); store.set('calibrated', true); track.dist = null; calibInfo();
+  toast('Calibrated');
+};
+// tapping the dimmed background closes any sheet
+document.querySelectorAll('#lobby .lay .dm, #dk .dm').forEach(d => d.onclick = () => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); closeLays(); fitStage(true); });
+// start: a bad camera angle should be fixed before the round, not discovered as an unfair "out"
+bind('tSt', hostStart, () => {
+  if (isGuest()) return false;
+  const weak = Object.values(players).filter(p => (p.rate || 0) < 0.8).map(p => p.name);
+  if (!online || !weak.length) return true;
+  ask(weak.join(', ') + " can't see the target reliably yet.").then(ok => { if (ok) { tear($('#tSt')); setTimeout(hostStart, 190); } });
+  return false;
+});
+
+// ----- round and after -----
+// With nobody else connected the phone can't tell when the round is over, so the last one standing ends it by hand.
+holdBtn($('#btnFinish'), () => {
+  if (game.state !== 'playing' || !myAlive) return;
+  showEnd({ standings: [{ id: myId, name: cfg.name, col: cfg.col, outAt: null }], winner: myId, solo: false });
+});
+bind('tOA', () => backToLobby(true));
+$('#btnAgain').onclick = () => { if (!isGuest()) backToLobby(true); };
+$('#phB').onclick = openPhotos;
+
+// ----- start up -----
+mkBg('home', 'mint', 112); mkBg('lobby', 'violet', 150); mkBg('howScreen', 'pool', 150);
+fitStage(true);
+addEventListener('resize', () => fitStage());
+const fitAll = () => document.querySelectorAll('.gb').forEach(fitTk);
+drawLogo(); try { document.fonts.ready.then(() => { drawLogo(); fitAll(); }); } catch {} setTimeout(() => { drawLogo(); fitAll(); }, 900);
+requestAnimationFrame(loop);
+const qs = new URLSearchParams(location.search), qRoom = qs.get('room');
+if (qs.has('target')) showMarker('now');   // shared target link: open on the target
+else if (qRoom) { $('#joinCode').value = qRoom.toUpperCase().slice(0, 4); openJoin(); }   // invite link: the code is already filled in
 </script>
 </body>
 </html>
